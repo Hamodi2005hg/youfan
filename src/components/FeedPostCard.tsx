@@ -252,7 +252,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
               AdSense Compliant Verified Link
             </p>
             <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-              تم التحقق من سلامة الرابط ومطابقته للسياسات باستخدام Google Web Risk API
+              Link safety and compliance verified using Google Web Risk API
             </p>
           </div>
           <a
@@ -266,7 +266,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
             }}
             className="px-5 py-3 bg-white hover:bg-gray-200 text-black font-extrabold text-xs rounded-full transition-all flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 cursor-pointer no-underline"
           >
-            <span>Visit Link / زيارة الرابط</span>
+            <span>Visit Link</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>

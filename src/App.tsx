@@ -338,6 +338,14 @@ export default function App() {
               onCreateProfile={() => setAuthModal({ open: true, mode: 'signup' })}
             />
           </div>
+        ) : activeView === 'feed' ? (
+          <GlobalFeedView 
+            posts={allPosts} 
+            currentUser={currentUser}
+            onSelectPost={(post) => setSelectedPost(post)}
+            onSelectProfile={handleSelectProfile}
+            onRequireAuth={() => setAuthModal({ open: true, mode: 'login' })}
+          />
         ) : (
           currentProfile ? (
             <ProfileView

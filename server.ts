@@ -67,7 +67,7 @@ async function checkImageSafety(imageBuffer: Buffer): Promise<void> {
       restricted.includes(violence) ||
       restricted.includes(racy)
     ) {
-      throw new Error('عذراً، المحتوى يخالف معايير المجتمع');
+      throw new Error('Sorry, the content violates community guidelines.');
     }
   }
 }
@@ -106,7 +106,7 @@ async function validateLinkSafety(uri: string): Promise<void> {
     }
     const data = await res.json();
     if (data && data.match) {
-      throw new Error('عذراً، هذا الرابط غير آمن ويخالف شروط وأحكام Google AdSense لسلامة الروابط (Web Risk API).');
+      throw new Error('Sorry, this link is unsafe and violates Google AdSense safety policies (Web Risk API).');
     }
   } catch (err: any) {
     if (err.message && err.message.includes('Web Risk API')) {
@@ -153,7 +153,7 @@ function checkTextSafety(text: string): void {
     const regex = new RegExp(`(?:^|\\s|\\b|\\W)${escaped}(?:$|\\s|\\b|\\W)`, 'i');
 
     if (regex.test(normalized) || normalized.includes(normalizedWord)) {
-      throw new Error('عذراً، النص يحتوي على كلمات تخالف معايير المجتمع');
+      throw new Error('Sorry, the text contains words that violate community guidelines.');
     }
   }
 }
@@ -446,7 +446,7 @@ app.post('/api/auth/google', async (req, res) => {
         if (data) exists = true;
       } catch {}
     }
-    if (exists) return res.status(400).json({ error: 'الاسم المستعار مستخدم بالفعل. الرجاء اختيار اسم آخر.' });
+    if (exists) return res.status(400).json({ error: 'Nickname is already taken. Please choose another one.' });
 
     const newProfile = {
       id,
@@ -517,7 +517,7 @@ app.post('/api/auth/google', async (req, res) => {
     if (foundProfile) {
       return res.status(200).json(foundProfile);
     } else {
-      return res.status(404).json({ error: 'الحساب غير موجود. الرجاء تسجيل حساب جديد أولاً.' });
+      return res.status(404).json({ error: 'Account not found. Please sign up first.' });
     }
   }
 });
@@ -850,7 +850,7 @@ app.post('/api/posts', async (req, res) => {
       await validateLinkSafety(link_url);
     }
   } catch (err: any) {
-    return res.status(400).json({ error: err.message || 'عذراً، المحتوى يخالف معايير المجتمع' });
+    return res.status(400).json({ error: err.message || 'Sorry, the content violates community guidelines.' });
   }
 
   const profile = memoryProfiles.get(username?.toLowerCase()) || Array.from(memoryProfiles.values()).find(p => p.id === user_id);
@@ -1134,7 +1134,7 @@ app.post('/api/posts/:id/comments', async (req, res) => {
   try {
     checkTextSafety(content);
   } catch (err: any) {
-    return res.status(400).json({ error: err.message || 'عذراً، النص يحتوي على كلمات تخالف معايير المجتمع' });
+    return res.status(400).json({ error: err.message || 'Sorry, the text contains words that violate community guidelines.' });
   }
 
   const newComment = {
@@ -1522,7 +1522,7 @@ app.post('/api/profile/update', async (req, res) => {
     try {
       await validateImageUrlSafety(avatar_url);
     } catch (err: any) {
-      return res.status(400).json({ error: err.message || 'عذراً، المحتوى يخالف معايير المجتمع' });
+      return res.status(400).json({ error: err.message || 'Sorry, the content violates community guidelines.' });
     }
   }
 
@@ -1530,7 +1530,7 @@ app.post('/api/profile/update', async (req, res) => {
     try {
       checkTextSafety(bio);
     } catch (err: any) {
-      return res.status(400).json({ error: err.message || 'عذراً، النص يحتوي على كلمات تخالف معايير المجتمع' });
+      return res.status(400).json({ error: err.message || 'Sorry, the text contains words that violate community guidelines.' });
     }
   }
 

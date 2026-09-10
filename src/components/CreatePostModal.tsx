@@ -25,11 +25,11 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
   const handleFileChange = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setError('Please choose a valid image file. / الرجاء اختيار ملف صورة صحيح.');
+      setError('Please choose a valid image file.');
       return;
     }
     if (file.size > 8 * 1024 * 1024) { // 8MB limit
-      setError('Image is too large. Please select an image under 8MB. / الصورة كبيرة جداً، الرجاء اختيار صورة أقل من 8 ميجابايت.');
+      setError('Image is too large. Please select an image under 8MB.');
       return;
     }
     
@@ -44,22 +44,22 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError('Story Title is required. / عنوان المنشور مطلوب.');
+      setError('Story Title is required.');
       return;
     }
 
     if (postType === 'image' && !imageUrl.trim()) {
-      setError('Please select an image for your story. / الرجاء اختيار صورة للقصة.');
+      setError('Please select an image for your story.');
       return;
     }
 
     if (postType === 'link' && !linkUrl.trim()) {
-      setError('Please enter a link URL. / الرجاء إدخال رابط الموقع.');
+      setError('Please enter a link URL.');
       return;
     }
 
     if (postType === 'link' && !linkUrl.trim().startsWith('http://') && !linkUrl.trim().startsWith('https://')) {
-      setError('URL must start with http:// or https:// / يجب أن يبدأ الرابط بـ http:// أو https://');
+      setError('URL must start with http:// or https://');
       return;
     }
 
@@ -122,7 +122,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             }`}
           >
             <ImageIcon className="w-4 h-4" />
-            <span>Image / إضافة صورة</span>
+            <span>Image</span>
           </button>
           <button
             type="button"
@@ -132,7 +132,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             }`}
           >
             <LinkIcon className="w-4 h-4" />
-            <span>Link / إضافة رابط</span>
+            <span>Link</span>
           </button>
         </div>
 
@@ -145,7 +145,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-              Title / عنوان المنشور
+              Title
             </label>
             <input
               type="text"
@@ -159,7 +159,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-              Description / تفاصيل المنشور
+              Description
             </label>
             <textarea
               rows={3}
@@ -173,7 +173,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           {postType === 'image' ? (
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                Upload Image / تحميل صورة
+                Upload Image
               </label>
               
               <input
@@ -239,7 +239,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           ) : (
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                Link URL / رابط الموقع (Checked with Google Web Risk API)
+                Link URL (Checked with Google Web Risk API)
               </label>
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-3.5 focus-within:border-black focus-within:bg-white transition">
                 <LinkIcon className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
@@ -253,7 +253,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 />
               </div>
               <p className="mt-2 text-[11px] text-gray-500 font-medium leading-relaxed bg-blue-50/60 p-3 rounded-xl border border-blue-100">
-                🔒 يتم فحص الروابط تلقائياً عبر نظام <strong>Google Web Risk API</strong> لضمان سلامتها ومطابقتها لشروط وأحكام Google AdSense قبل النشر.
+                🔒 Links are automatically checked via the <strong>Google Web Risk API</strong> to ensure safety and compliance with Google AdSense terms before publishing.
               </p>
             </div>
           )}
@@ -264,7 +264,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               disabled={submitting}
               className="w-full py-4 bg-black hover:bg-gray-800 text-white font-bold text-sm rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 border-none shadow-md"
             >
-              {submitting ? 'Verifying & Publishing...' : 'Publish Post / نشر المنشور'}
+              {submitting ? 'Verifying & Publishing...' : 'Publish Post'}
             </button>
           </div>
         </form>
