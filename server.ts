@@ -30,12 +30,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Fail-safe helper to handle upserting profiles to Supabase (bypasses missing columns like social_links or category if they are absent in the user's table)
 async function upsertProfileFailSafe(newProfile: any) {
   try {
-    const { error } = await supabase.from('profiles').upsert([newProfile]);
+    const cleanProfile = { ...newProfile };
+    delete cleanProfile.email; // Stripping email since the profiles table does not have an email column
+    const { error } = await supabase.from('profiles').upsert([cleanProfile]);
     if (error) {
       console.error('❌ Supabase Profiles Upsert Error:', error.message, error.details);
       if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
         console.log('🔄 Retrying profiles upsert without social_links and category...');
-        const cleanProfile = { ...newProfile };
         delete cleanProfile.social_links;
         delete cleanProfile.category;
         const { error: retryError } = await supabase.from('profiles').upsert([cleanProfile]);
@@ -56,12 +57,13 @@ async function upsertProfileFailSafe(newProfile: any) {
 // Fail-safe helper to handle updating profiles on Supabase
 async function updateProfileFailSafe(id: string, updateData: any) {
   try {
-    const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
+    const cleanData = { ...updateData };
+    delete cleanData.email; // Stripping email since the profiles table does not have an email column
+    const { error } = await supabase.from('profiles').update(cleanData).eq('id', id);
     if (error) {
       console.error('❌ Supabase Profiles Update Error:', error.message, error.details);
       if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
         console.log('🔄 Retrying profiles update without social_links and category...');
-        const cleanData = { ...updateData };
         delete cleanData.social_links;
         delete cleanData.category;
         const { error: retryError } = await supabase.from('profiles').update(cleanData).eq('id', id);
@@ -635,24 +637,25 @@ app.post('/api/auth/google', async (req, res) => {
     }
   }
 
-  // 2. Search in Supabase for existing email (direct column query first)
+  // 2. Search in Supabase for existing email using social_links JSONB contains
   if (!emailExists) {
     try {
-      const { data: emailData } = await supabase
+      const { data: matchedData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('email', cleanEmail)
-        .maybeSingle();
+        .contains('social_links', { email: cleanEmail });
       
-      if (emailData) {
+      if (!error && matchedData && matchedData.length > 0) {
         emailExists = true;
-        existingProfileByEmail = emailData;
+        existingProfileByEmail = matchedData[0];
         memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Error querying social_links JSONB directly:', err);
+    }
   }
 
-  // 3. Fallback search in Supabase using social_links mapping
+  // 3. Fallback search in Supabase using direct scan on all profiles
   if (!emailExists) {
     try {
       const { data } = await supabase.from('profiles').select('*');
@@ -674,10 +677,15 @@ app.post('/api/auth/google', async (req, res) => {
           emailExists = true;
           existingProfileByEmail = match;
           
-          // Self-healing: Update the profile with the new direct 'email' field in Supabase & memory
-          existingProfileByEmail.email = cleanEmail;
+          // Self-healing: Ensure social_links holds the Google email
+          if (!existingProfileByEmail.social_links) {
+            existingProfileByEmail.social_links = {};
+          } else if (typeof existingProfileByEmail.social_links === 'string') {
+            try { existingProfileByEmail.social_links = JSON.parse(existingProfileByEmail.social_links); } catch { existingProfileByEmail.social_links = {}; }
+          }
+          existingProfileByEmail.social_links.email = cleanEmail;
           memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-          await updateProfileFailSafe(existingProfileByEmail.id, { email: cleanEmail });
+          await updateProfileFailSafe(existingProfileByEmail.id, { social_links: existingProfileByEmail.social_links });
         }
       }
     } catch {}
