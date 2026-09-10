@@ -1,0 +1,6 @@
+{
+  "name": "YoStar",
+  "description": "YoStar content sharing and monetization platform with Google AdSense 70/30 revenue sharing, dynamic ads.txt, creator profiles, and anti-fraud post view milestones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
