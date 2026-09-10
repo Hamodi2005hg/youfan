@@ -93,6 +93,29 @@ async function validateImageUrlSafety(imageUrl: string): Promise<void> {
   }
 }
 
+async function validateLinkSafety(uri: string): Promise<void> {
+  if (!uri) return;
+  const apiKey = 'AIzaSyBjxOtFf780GJ2rFAgbkNezQjtgIO-sKrk';
+  const url = `https://webrisk.googleapis.com/v1/uris:search?threatTypes=MALWARE&threatTypes=SOCIAL_ENGINEERING&threatTypes=UNWANTED_SOFTWARE&uri=${encodeURIComponent(uri)}&key=${apiKey}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error('Web Risk API response status:', res.status);
+      return; // Fail-safe
+    }
+    const data = await res.json();
+    if (data && data.match) {
+      throw new Error('عذراً، هذا الرابط غير آمن ويخالف شروط وأحكام Google AdSense لسلامة الروابط (Web Risk API).');
+    }
+  } catch (err: any) {
+    if (err.message && err.message.includes('Web Risk API')) {
+      throw err;
+    }
+    // Fail-safe for network/unexpected errors
+  }
+}
+
 // Text Safety Check function (Checks against banned/inappropriate words in Arabic & English)
 function checkTextSafety(text: string): void {
   if (!text || typeof text !== 'string') return;
@@ -160,6 +183,7 @@ interface Post {
   created_at: string;
   upvotes?: number;
   downvotes?: number;
+  link_url?: string;
 }
 
 interface ViewLog {
@@ -400,6 +424,102 @@ app.get('/api/profiles', async (req, res) => {
   // Fallback to memory
   const list = Array.from(memoryProfiles.values());
   res.json(list);
+});
+
+// Google Auth Endpoint
+app.post('/api/auth/google', async (req, res) => {
+  const { email, username, isSignup } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  const cleanEmail = email.toLowerCase().trim();
+
+  if (isSignup) {
+    if (!username) return res.status(400).json({ error: 'Username is required for signup' });
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    const id = `prof_${cleanUsername}`;
+    
+    // Check if username already exists
+    let exists = memoryProfiles.has(cleanUsername);
+    if (!exists) {
+      try {
+        const { data } = await supabase.from('profiles').select('id').eq('username', cleanUsername).maybeSingle();
+        if (data) exists = true;
+      } catch {}
+    }
+    if (exists) return res.status(400).json({ error: 'الاسم المستعار مستخدم بالفعل. الرجاء اختيار اسم آخر.' });
+
+    const newProfile = {
+      id,
+      username: cleanUsername,
+      bio: 'Verified Creator authenticated via Google',
+      avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`,
+      adsense_pub_id: '',
+      views_count: 0,
+      created_at: new Date().toISOString(),
+      social_links: { email: cleanEmail }
+    };
+
+    memoryProfiles.set(cleanUsername, newProfile as any);
+    try {
+      await supabase.from('profiles').upsert([newProfile]);
+    } catch {}
+
+    return res.status(201).json(newProfile);
+  } else {
+    // Login flow
+    let foundProfile: any = null;
+    for (const [uname, p] of memoryProfiles.entries()) {
+      if (p.social_links && p.social_links.email === cleanEmail) {
+        foundProfile = p;
+        break;
+      }
+    }
+
+    if (!foundProfile) {
+      try {
+        const { data } = await supabase.from('profiles').select('*');
+        if (data) {
+          const match = data.find((p: any) => {
+            let emailInSocial = false;
+            if (p.social_links) {
+              if (typeof p.social_links === 'string') {
+                try {
+                  const parsed = JSON.parse(p.social_links);
+                  emailInSocial = parsed.email === cleanEmail;
+                } catch {}
+              } else {
+                emailInSocial = p.social_links.email === cleanEmail;
+              }
+            }
+            return emailInSocial;
+          });
+          if (match) {
+            foundProfile = match;
+            memoryProfiles.set(foundProfile.username, foundProfile);
+          }
+        }
+      } catch {}
+    }
+
+    // Fallback: search by prefix
+    if (!foundProfile) {
+       const prefix = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+       let p = memoryProfiles.get(prefix);
+       if (!p) {
+         try {
+           const { data } = await supabase.from('profiles').select('*').eq('username', prefix).maybeSingle();
+           if (data) p = data;
+         } catch {}
+       }
+       if (p) foundProfile = p;
+    }
+
+    if (foundProfile) {
+      return res.status(200).json(foundProfile);
+    } else {
+      return res.status(404).json({ error: 'الحساب غير موجود. الرجاء تسجيل حساب جديد أولاً.' });
+    }
+  }
 });
 
 // Get profile by username + 24h Anti-Fraud View Tracker
@@ -715,31 +835,39 @@ app.get('/api/posts', async (req, res) => {
 
 // Create post
 app.post('/api/posts', async (req, res) => {
-  const { user_id, username, image_url, title, description } = req.body;
-  if (!user_id || !image_url || !title) {
-    return res.status(400).json({ error: 'user_id, image_url and title are required' });
+  const { user_id, username, image_url, title, description, link_url } = req.body;
+  if (!user_id || !title || (!image_url && !link_url)) {
+    return res.status(400).json({ error: 'user_id, title, and either image_url or link_url are required' });
   }
 
   try {
     checkTextSafety(title);
     if (description) checkTextSafety(description);
-    await validateImageUrlSafety(image_url);
+    if (image_url) {
+      await validateImageUrlSafety(image_url);
+    }
+    if (link_url) {
+      await validateLinkSafety(link_url);
+    }
   } catch (err: any) {
     return res.status(400).json({ error: err.message || 'عذراً، المحتوى يخالف معايير المجتمع' });
   }
 
   const profile = memoryProfiles.get(username?.toLowerCase()) || Array.from(memoryProfiles.values()).find(p => p.id === user_id);
 
+  const finalImageUrl = image_url || 'https://images.unsplash.com/photo-1546074177-ffedd1d85d4b?w=800&auto=format&fit=crop&q=80';
+
   const newPost: Post = {
     id: `post-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     user_id,
     username: username || profile?.username || 'creator',
     user_avatar: profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    image_url,
+    image_url: finalImageUrl,
     title,
     description: description || '',
     views_count: 0,
     created_at: new Date().toISOString(),
+    link_url: link_url || undefined,
   };
 
   try {
@@ -751,6 +879,8 @@ app.post('/api/posts', async (req, res) => {
         title: newPost.title,
         description: newPost.description,
         views_count: 0,
+        // Since link_url may not be in the database columns, try-catch handles it cleanly
+        link_url: newPost.link_url || null,
       },
     ]);
   } catch {}

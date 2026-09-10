@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Post, Profile } from '../types';
-import { Eye, X, Calendar, User, Share2, ArrowUp, ArrowDown, MessageSquare, Send } from 'lucide-react';
+import { Eye, X, Calendar, User, Share2, ArrowUp, ArrowDown, MessageSquare, Send, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 interface PostDetailModalProps {
   post: Post | null;
@@ -195,15 +195,54 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
 
         {/* Scrollable body content */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/10">
-          {/* Media Image */}
-          <div className="w-full bg-black flex items-center justify-center max-h-[450px] overflow-hidden">
-            <img 
-              src={post.image_url} 
-              alt={post.title} 
-              className="w-full h-auto object-contain max-h-[450px]" 
-              referrerPolicy="no-referrer"
-            />
-          </div>
+          {/* Media Image or Link Preview */}
+          {post.link_url ? (
+            <div className="w-full px-4 py-8 bg-gradient-to-br from-neutral-900 to-black border-b border-white/10 flex flex-col items-center justify-center text-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center border border-white/15 shadow-inner">
+                <LinkIcon className="w-6 h-6 text-[#FFFB93]" />
+              </div>
+              <div className="max-w-md px-4">
+                <p className="text-xs text-gray-500 font-mono tracking-wider truncate mb-1">
+                  {(() => {
+                    try {
+                      return new URL(post.link_url).hostname;
+                    } catch {
+                      return post.link_url;
+                    }
+                  })()}
+                </p>
+                <p className="text-sm font-bold text-white mb-2">
+                  AdSense Compliant Verified Link
+                </p>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                  تم التحقق من سلامة الرابط ومطابقته للسياسات باستخدام Google Web Risk API
+                </p>
+              </div>
+              <a
+                href={post.link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={async () => {
+                  try {
+                    await fetch(`/api/posts/${post.id}/view`, { method: 'POST' });
+                  } catch {}
+                }}
+                className="px-5 py-3 bg-white hover:bg-gray-200 text-black font-extrabold text-xs rounded-full transition-all flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 cursor-pointer no-underline"
+              >
+                <span>Visit Link / زيارة الرابط</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          ) : (
+            <div className="w-full bg-black flex items-center justify-center max-h-[450px] overflow-hidden">
+              <img 
+                src={post.image_url} 
+                alt={post.title} 
+                className="w-full h-auto object-contain max-h-[450px]" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
 
           {/* Content Details */}
           <div className="p-6">

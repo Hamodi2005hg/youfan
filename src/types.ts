@@ -29,6 +29,7 @@ export interface Post {
   description: string;
   views_count: number;
   created_at: string;
+  link_url?: string;
 }
 
 export interface AdConfig {
