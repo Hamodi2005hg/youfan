@@ -27,7 +27,7 @@ const PLATFORM_ADSENSE_PUB_ID = process.env.PLATFORM_ADSENSE_PUB_ID || 'pub-1082
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Fail-safe helper to handle upserting profiles to Supabase (bypasses missing columns like social_links or category if they are absent in the user's table)
+// Fail-safe helper to handle upserting profiles to Supabase (bypasses missing columns like social_links, category, or last_ip if they are absent in the user's table)
 async function upsertProfileFailSafe(newProfile: any) {
   try {
     const cleanProfile = { ...newProfile };
@@ -35,10 +35,11 @@ async function upsertProfileFailSafe(newProfile: any) {
     const { error } = await supabase.from('profiles').upsert([cleanProfile]);
     if (error) {
       console.error('❌ Supabase Profiles Upsert Error:', error.message, error.details);
-      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
-        console.log('🔄 Retrying profiles upsert without social_links and category...');
+      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip')) {
+        console.log('🔄 Retrying profiles upsert without extra/missing columns...');
         delete cleanProfile.social_links;
         delete cleanProfile.category;
+        delete cleanProfile.last_ip;
         const { error: retryError } = await supabase.from('profiles').upsert([cleanProfile]);
         if (retryError) {
           console.error('❌ Retry profiles upsert failed:', retryError.message);
@@ -62,10 +63,11 @@ async function updateProfileFailSafe(id: string, updateData: any) {
     const { error } = await supabase.from('profiles').update(cleanData).eq('id', id);
     if (error) {
       console.error('❌ Supabase Profiles Update Error:', error.message, error.details);
-      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
-        console.log('🔄 Retrying profiles update without social_links and category...');
+      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip')) {
+        console.log('🔄 Retrying profiles update without extra/missing columns...');
         delete cleanData.social_links;
         delete cleanData.category;
+        delete cleanData.last_ip;
         const { error: retryError } = await supabase.from('profiles').update(cleanData).eq('id', id);
         if (retryError) {
           console.error('❌ Retry profiles update failed:', retryError.message);
@@ -368,6 +370,100 @@ app.use(async (req, res, next) => {
         '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Permanently Banned</h1>' +
         '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your account has been permanently suspended for violating our terms of service.</p>' +
         '</div>');
+    }
+
+    // --- VPN Trap & Automated Network Manipulation Check ---
+    if (currentProfile) {
+      const savedLastIp = currentProfile.last_ip || (currentProfile.social_links && currentProfile.social_links.last_ip);
+      
+      if (!savedLastIp) {
+        // Initial setup: No saved IP yet. Check if current IP is a VPN
+        try {
+          const { checkIpInfo } = require('./vpnBlocker');
+          const ipCheck = await checkIpInfo(clientIp);
+          if (ipCheck.vpn) {
+            console.log(`[Security Engine] 🛑 Immediate Ban: VPN on login/init for user @${currentProfile.username} from IP ${clientIp}`);
+            currentProfile.is_banned = true;
+            await updateProfileFailSafe(currentProfile.id, { is_banned: true });
+            
+            // Add IP to blacklisted_ips
+            try {
+              await supabase.from('blacklisted_ips').insert([{ ip: clientIp, reason: `VPN on login: ${currentProfile.id}` }]);
+            } catch {}
+            
+            if (isApiRequest) {
+              return res.status(403).json({ error: 'Access Blocked: Your account has been permanently suspended for attempting to access the platform using a VPN or Proxy.' });
+            }
+            return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+              '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: VPN Detected</h1>' +
+              '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your account has been permanently suspended for attempting to access the platform using a VPN or Proxy.</p>' +
+              '</div>');
+          } else {
+            // Healthy real IP! Save it as last_ip
+            currentProfile.last_ip = clientIp;
+            if (!currentProfile.social_links) currentProfile.social_links = {};
+            currentProfile.social_links.last_ip = clientIp;
+            
+            await updateProfileFailSafe(currentProfile.id, {
+              last_ip: clientIp,
+              social_links: currentProfile.social_links
+            });
+            console.log(`[Security Engine] ✅ Saved healthy initial IP (${clientIp}) for @${currentProfile.username}`);
+          }
+        } catch (err) {
+          console.error('[Security Engine] Initial IP check error:', err);
+        }
+      } else if (savedLastIp && clientIp !== savedLastIp) {
+        // IP Change detected! Compare without consuming API first. If different, pull checkIpInfo dynamically.
+        console.log(`[Security Engine] ⚠️ IP Change detected for user @${currentProfile.username}! Saved: ${savedLastIp} | Current: ${clientIp}. Checking via IPinfo...`);
+        try {
+          const { checkIpInfo } = require('./vpnBlocker');
+          const ipCheck = await checkIpInfo(clientIp);
+          
+          if (ipCheck.vpn) {
+            // Caught in the trap! Ban the user and blacklist BOTH old and new IPs!
+            console.log(`[Security Engine] 🛑 VPN Trap caught user @${currentProfile.username} shifting from clean IP (${savedLastIp}) to VPN/Proxy IP (${clientIp})`);
+            
+            currentProfile.is_banned = true;
+            await updateProfileFailSafe(currentProfile.id, { is_banned: true });
+            
+            // Insert both IPs into blacklisted_ips
+            try {
+              await supabase.from('blacklisted_ips').upsert([
+                { ip: clientIp, reason: `VPN Trap caught: User @${currentProfile.username} changed IP from ${savedLastIp}` },
+                { ip: savedLastIp, reason: `VPN Trap source: Clean IP linked to banned user @${currentProfile.username}` }
+              ]);
+              
+              // Re-sync blacklist memory cache
+              const { syncBlacklistedIps } = require('./vpnBlocker');
+              syncBlacklistedIps(supabase).catch(() => {});
+            } catch (dbErr) {
+              console.error('[Security Engine] Failed to update blacklisted_ips on VPN Trap:', dbErr);
+            }
+            
+            if (isApiRequest) {
+              return res.status(403).json({ error: 'Access Blocked: Your account has been permanently suspended for attempting network manipulation.' });
+            }
+            return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+              '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Network Manipulation Detected</h1>' +
+              '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your account has been permanently banned for attempting network manipulation / VPN usage.</p>' +
+              '</div>');
+          } else {
+            // Changed to another clean IP (e.g. WiFi to mobile data). Update last_ip cleanly without any ban!
+            console.log(`[Security Engine] ✅ User @${currentProfile.username} changed to another healthy IP (${clientIp}). Updating last_ip...`);
+            currentProfile.last_ip = clientIp;
+            if (!currentProfile.social_links) currentProfile.social_links = {};
+            currentProfile.social_links.last_ip = clientIp;
+            
+            await updateProfileFailSafe(currentProfile.id, {
+              last_ip: clientIp,
+              social_links: currentProfile.social_links
+            });
+          }
+        } catch (err) {
+          console.error('[Security Engine] VPN Trap verification check failed:', err);
+        }
+      }
     }
   }
 
