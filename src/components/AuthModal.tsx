@@ -65,7 +65,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-2xl tracking-tighter text-black">
-              yo<span className="text-[#FF2D55]">.</span>fan
+              yo<span className="text-[#FF2D55]">.</span>star
             </span>
             <span className="text-[10px] font-bold bg-[#FFFB93] px-2 py-0.5 rounded-full text-black">
               Google Cloud Auth
@@ -106,7 +106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Choose your nickname / handle
               </label>
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5 focus-within:border-black focus-within:bg-white transition">
-                <span className="text-gray-400 text-sm font-semibold select-none">yo.fan/@</span>
+                <span className="text-gray-400 text-sm font-semibold select-none">yo.star/@</span>
                 <input
                   type="text"
                   required

@@ -50,7 +50,7 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
           </button>
         </div>
 
-        {/* Verified Tier (Highlighted with YoFan Yellow) */}
+        {/* Verified Tier (Highlighted with YoStar Yellow) */}
         <div className="p-8 sm:p-12 lg:p-16 bg-[#FFFB93] flex flex-col justify-between border-t md:border-t-0 md:border-l border-yellow-200">
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">

@@ -5,7 +5,7 @@ export const StatsSection: React.FC = () => {
     { label: 'Total Users', value: '2,907,974' },
     { label: 'Total Publications', value: '5,373,647' },
     { label: 'Partners Earns', value: '$5,000,000+' },
-    { label: 'YoFan', value: '100%' },
+    { label: 'YoStar', value: '100%' },
   ];
 
   return (

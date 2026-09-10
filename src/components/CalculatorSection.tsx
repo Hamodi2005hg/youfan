@@ -38,7 +38,7 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({ onStartEar
       {/* Top Header with Region Selector */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-black tracking-tight">
-          How much can I earn on YoFan?
+          How much can I earn on YoStar?
         </h3>
 
         <div className="flex items-center gap-3 relative">
