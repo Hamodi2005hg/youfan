@@ -13,7 +13,6 @@ import { ProfileView } from './components/ProfileView';
 import { PostDetailModal } from './components/PostDetailModal';
 import { CreatePostModal } from './components/CreatePostModal';
 import { AuthModal } from './components/AuthModal';
-import { AdsTxtModal } from './components/AdsTxtModal';
 import { SupabaseModal } from './components/SupabaseModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LegalModal, LegalTab } from './components/LegalModal';
@@ -38,7 +37,6 @@ export default function App() {
     mode: 'signup',
   });
   const [createPostOpen, setCreatePostOpen] = useState(false);
-  const [adsTxtOpen, setAdsTxtOpen] = useState(false);
   const [supabaseModalOpen, setSupabaseModalOpen] = useState(false);
   const [legalModal, setLegalModal] = useState<{ open: boolean; tab: LegalTab }>({
     open: false,
@@ -48,141 +46,87 @@ export default function App() {
   // Extract custom username from URL path/query/hash
   const getProfileFromUrl = () => {
     const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length > 0 && segments[0] !== 'api' && segments[0] !== 'feed' && segments[0] !== 'admin') {
+      return segments[0];
+    }
     const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash;
-
-    const queryUser = params.get('user') || params.get('u') || params.get('profile');
-    if (queryUser) return queryUser.replace('@', '');
-
-    if (hash) {
-      const cleanHash = hash.replace('#', '').replace('/', '');
-      if (cleanHash && !['home', 'feed', 'profile'].includes(cleanHash)) {
-        return cleanHash.replace('@', '');
-      }
-    }
-
-    if (path && path !== '/') {
-      const parts = path.split('/').filter(Boolean);
-      if (parts.length > 0) {
-        const first = parts[0];
-        if (first.startsWith('@')) {
-          return first.slice(1);
-        }
-        if ((first === 'u' || first === 'user' || first === 'profile') && parts[1]) {
-          return parts[1];
-        }
-        if (parts.length === 1 && !['api', 'home', 'feed', 'profile', 'index.html'].includes(first)) {
-          return first;
-        }
-      }
-    }
+    const u = params.get('u') || params.get('profile');
+    if (u) return u;
+    const hash = window.location.hash.replace('#', '');
+    if (hash && hash !== 'feed' && hash !== 'admin') return hash;
     return null;
   };
 
-  // Load initial posts and profiles from server
-  const loadData = async () => {
+  const fetchProfileDetails = async (username: string) => {
     try {
-      const [postsRes, profilesRes, sessionRes] = await Promise.all([
-        fetch('/api/posts'),
-        fetch('/api/profiles'),
-        fetch('/api/auth/session'),
-      ]);
-      if (postsRes.ok) {
-        const postsData = await postsRes.json();
-        setAllPosts(postsData);
+      const res = await fetch(`/api/profile/${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentProfile(data.profile);
+        setProfilePosts(data.posts || []);
+        setActiveView('profile');
+      } else {
+        setActiveView('home');
       }
-      if (profilesRes.ok) {
-        const profilesData = await profilesRes.json();
-        setAllProfiles(profilesData);
-      }
-      if (sessionRes.ok) {
-        const sessionData = await sessionRes.json();
-        if (sessionData.user) {
-          setCurrentUser(sessionData.user);
-        } else {
-          setCurrentUser(null);
-        }
-      }
-    } catch (err) {
-      console.error('Error loading initial data:', err);
+    } catch {
+      setActiveView('home');
     }
   };
 
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        const [postsRes, profilesRes, sessionRes] = await Promise.all([
-          fetch('/api/posts'),
-          fetch('/api/profiles'),
-          fetch('/api/auth/session'),
-        ]);
-
-        let fetchedUser: Profile | null = null;
-        if (sessionRes.ok) {
-          const sessionData = await sessionRes.json();
-          fetchedUser = sessionData.user || null;
-          setCurrentUser(fetchedUser);
-        }
-
-        let fetchedProfiles: Profile[] = [];
-        if (profilesRes.ok) {
-          const profilesData = await profilesRes.json();
-          setAllProfiles(profilesData);
-          fetchedProfiles = profilesData;
-        }
-
-        if (postsRes.ok) {
-          const postsData = await postsRes.json();
-          setAllPosts(postsData);
-        }
-
-        const targetUser = getProfileFromUrl();
-        if (targetUser === 'admin' || window.location.pathname.toLowerCase().includes('admin') || window.location.hash.toLowerCase().includes('admin')) {
-          setActiveView('admin');
-        } else if (targetUser) {
-          handleSelectProfile(targetUser);
-        } else {
-          // No profile in URL -> Show the website's main landing/home interface!
-          setActiveView('home');
-          setSelectedUsername(null);
-          setCurrentProfile(null);
-        }
-      } catch (err) {
-        console.error('Error in initApp:', err);
+  const loadData = async () => {
+    try {
+      const res = await fetch('/api/platform-data');
+      if (res.ok) {
+        const data = await res.json();
+        setAllPosts(data.posts || []);
+        setAllProfiles(data.profiles || []);
       }
-    };
-    initApp();
+    } catch {}
+  };
+
+  const checkSession = async () => {
+    try {
+      const match = document.cookie.match(/yostar_session=([^;]+)/);
+      if (match && match[1]) {
+        const username = match[1];
+        const res = await fetch(`/api/profile/${username}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data.profile);
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadData();
+    checkSession();
+    const urlUser = getProfileFromUrl();
+    if (urlUser) {
+      setSelectedUsername(urlUser);
+      fetchProfileDetails(urlUser);
+    }
   }, []);
 
-  // Fetch single profile details and posts
-  const fetchProfileDetails = async (username: string) => {
-    if (!username) return;
-    try {
-      const [pRes, postsRes] = await Promise.all([
-        fetch(`/api/profile/${username}`),
-        fetch(`/api/profile/${username}/posts`),
-      ]);
+  const handleSelectProfile = (username: string, section?: string) => {
+    setSelectedUsername(username);
+    const newPath = `/${username}${section ? `?section=${section}` : ''}`;
+    window.history.pushState({}, '', newPath);
+    fetchProfileDetails(username);
+  };
 
-      if (pRes.ok) {
-        try {
-          const pData = await pRes.json();
-          setCurrentProfile(pData);
-        } catch (e) {}
-      } else {
-        // If profile not found, go back home and show alert
-        alert(`Profile @${username} not found.`);
-        handleGoHome();
-        return;
-      }
-      if (postsRes.ok) {
-        try {
-          const postsData = await postsRes.json();
-          setProfilePosts(postsData);
-        } catch (e) {}
-      }
-    } catch (e) {
-      console.error('Error loading profile:', e);
-    }
+  const handleGoHome = () => {
+    setSelectedUsername(null);
+    setActiveView('home');
+    window.history.pushState({}, '', '/');
+    loadData();
+  };
+
+  const handleLogout = () => {
+    document.cookie = 'yostar_session=; path=/; max-age=0';
+    setCurrentUser(null);
+    handleGoHome();
   };
 
   const handleVoteSuccess = () => {
@@ -192,125 +136,12 @@ export default function App() {
     }
   };
 
-  const [activeSection, setActiveSection] = useState<string | undefined>(undefined);
-
-  const handleSelectProfile = (username: string, section?: string) => {
-    const cleanUsername = username.replace('@', '');
-    if (cleanUsername === 'admin') {
-      setActiveView('admin');
-      window.history.pushState(null, '', '/admin');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    if (currentProfile?.username !== cleanUsername) {
-      setCurrentProfile(null); // Clear to show loading state
-    }
-    setSelectedUsername(cleanUsername);
-    setActiveSection(section);
-    setActiveView('profile');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Update URL bar dynamically
-    window.history.pushState(null, '', `/@${cleanUsername}`);
-    
-    fetchProfileDetails(cleanUsername);
-  };
-
-  const handleGoHome = () => {
-    setActiveView('home');
-    setActiveSection(undefined);
-    setSelectedUsername(null);
-    setCurrentProfile(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Update URL to home
-    window.history.pushState(null, '', '/');
-    
-    loadData();
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {}
-    setCurrentUser(null);
-    setActiveView('home');
-    setSelectedUsername(null);
-    setCurrentProfile(null);
-    window.history.pushState(null, '', '/');
-  };
-
-  const handleSelectSessionUser = async (profileId: string | null) => {
-    try {
-      const res = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentUser(data.user);
-        if (data.user) {
-          handleSelectProfile(data.user.username, 'global_feed');
-        } else {
-          setActiveView('home');
-          setSelectedUsername(null);
-          setCurrentProfile(null);
-        }
-      }
-    } catch (e) {
-      console.error('Error selecting session user:', e);
-    }
-  };
-
   const handleStartEarning = () => {
     if (currentUser) {
       handleSelectProfile(currentUser.username);
     } else {
       setAuthModal({ open: true, mode: 'signup' });
     }
-  };
-
-  const handleUpdateAdSense = async (pubId: string): Promise<boolean> => {
-    if (!currentProfile) return false;
-    try {
-      const res = await fetch('/api/profile/update-adsense', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentProfile.username,
-          adsense_pub_id: pubId,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentProfile(data.profile);
-        if (currentUser?.username === currentProfile.username) {
-          setCurrentUser(data.profile);
-        }
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
-  const handleSimulateMilestones = async () => {
-    if (!currentProfile) return;
-    try {
-      const res = await fetch('/api/simulate-milestone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentProfile.username }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentProfile(data.profile);
-        fetchProfileDetails(currentProfile.username);
-        loadData();
-      }
-    } catch {}
   };
 
   const handlePostCreated = (newPost: Post) => {
@@ -334,7 +165,6 @@ export default function App() {
         onOpenLegal={(tab) => setLegalModal({ open: true, tab })}
         onLogout={handleLogout}
         activeView={activeView}
-        activeSection={activeSection}
       />
 
 
@@ -383,19 +213,15 @@ export default function App() {
         ) : (
           currentProfile ? (
             <ProfileView
-            onRequireAuth={() => setAuthModal({ open: true, mode: 'login' })}
+              onRequireAuth={() => setAuthModal({ open: true, mode: 'login' })}
               key={currentProfile.id}
               profile={currentProfile}
               posts={profilePosts}
               allPosts={allPosts}
               currentUser={currentUser}
-              initialSection={activeSection}
               onOpenCreatePost={() => setCreatePostOpen(true)}
               onSelectPost={(post) => setSelectedPost(post)}
               onBackHome={handleGoHome}
-              onUpdateAdSense={handleUpdateAdSense}
-              onSimulateMilestones={handleSimulateMilestones}
-              onOpenAdsTxt={() => setAdsTxtOpen(true)}
               onLogout={handleLogout}
               onVoteSuccess={handleVoteSuccess}
               onSelectProfile={handleSelectProfile}
@@ -412,11 +238,10 @@ export default function App() {
       {/* Global Footer */}
       <Footer
         onOpenLegal={(tab) => setLegalModal({ open: true, tab })}
-        onOpenAdsTxt={() => setAdsTxtOpen(true)}
         onOpenSupabaseModal={() => setSupabaseModalOpen(true)}
       />
 
-      {/* Post Detail Modal with 70/30 AdSense Banner */}
+      {/* Post Detail Modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -454,9 +279,6 @@ export default function App() {
           }}
         />
       )}
-
-      {/* Dynamic ads.txt Route Viewer Modal */}
-      {adsTxtOpen && <AdsTxtModal onClose={() => setAdsTxtOpen(false)} />}
 
       {/* Supabase Schema & Setup Modal */}
       {supabaseModalOpen && <SupabaseModal onClose={() => setSupabaseModalOpen(false)} />}

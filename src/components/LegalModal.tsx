@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, FileText, Lock, DollarSign, CheckCircle2, AlertTriangle, Ban, Search, ExternalLink } from 'lucide-react';
+import { X, ShieldAlert, FileText, Lock, Ban, AlertTriangle } from 'lucide-react';
 
-export type LegalTab = 'content-policy' | 'terms' | 'privacy' | 'monetization';
+export type LegalTab = 'content-policy' | 'terms' | 'privacy';
 
 interface LegalModalProps {
   initialTab?: LegalTab;
@@ -10,7 +10,6 @@ interface LegalModalProps {
 
 export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-policy', onClose }) => {
   const [activeTab, setActiveTab] = useState<LegalTab>(initialTab);
-  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm animate-fade-in">
@@ -79,18 +78,6 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
             <Lock className="w-4 h-4 text-[#007AFF]" />
             Privacy Policy
           </button>
-
-          <button
-            onClick={() => setActiveTab('monetization')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer border-none ${
-              activeTab === 'monetization'
-                ? 'bg-black text-white shadow-sm'
-                : 'bg-white text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <DollarSign className="w-4 h-4 text-[#FFD60A]" />
-            Partner Program & AdSense Rules
-          </button>
         </div>
 
         {/* Modal Body Content */}
@@ -104,18 +91,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                   YoStar Creator Content Policy Overview
                 </h3>
                 <p className="text-xs text-amber-900 leading-relaxed font-medium">
-                  In order to maintain a safe and trustworthy network for all creators, fans, and advertising partners, YoStar enforces a strict creator content policy. The policy is structured into two main tiers:
+                  In order to maintain a safe and trustworthy network for all creators, fans, and visitors, YoStar enforces a strict creator content policy. Violations result in immediate permanent account termination.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <div className="p-3 bg-red-50/80 border border-red-200 rounded-xl text-xs text-red-900 font-semibold flex items-start gap-2">
-                    <Ban className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    <span><strong>Tier 1: Prohibited Content:</strong> Explicitly banned from YoStar. Violations result in immediate permanent account termination.</span>
-                  </div>
-                  <div className="p-3 bg-yellow-50/80 border border-yellow-200 rounded-xl text-xs text-yellow-950 font-semibold flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
-                    <span><strong>Tier 2: Restricted Content:</strong> Allowed for publication, but strictly not eligible for the YoStar Partner Monetization Program.</span>
-                  </div>
-                </div>
               </div>
 
               {/* Section 1: Strictly Prohibited Content */}
@@ -154,52 +131,6 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                   </div>
                 </div>
               </div>
-
-              {/* Section 2: Non-Monetizable Content */}
-              <div>
-                <h4 className="text-lg font-black text-black tracking-tight mb-3 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">2</span>
-                  Content Allowed, But Not Eligible for Partner Program (AdSense)
-                </h4>
-                <p className="text-sm text-gray-600 mb-4">
-                  We believe in empowering free expression. However, to comply with Google AdSense Publisher Policies and advertising brand safety, profiles sharing the following categories cannot monetize with ads:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">🔞 Sexual Suggestiveness</strong>
-                    <span className="text-gray-600">Sexually suggestive content, fetish advice, or adult merchandise discussions are allowed to be posted, but cannot serve Google AdSense ads.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">⚠️ Shocking & Graphic Imagery</strong>
-                    <span className="text-gray-600">Gruesome accidents, graphic injuries, or heavy profanity cannot be monetized.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">💣 Explosives & Fireworks</strong>
-                    <span className="text-gray-600">Promoting explosive materials, fireworks sales, or homemade pyrotechnic guides.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">🔫 Firearms & Combat Weapons</strong>
-                    <span className="text-gray-600">Sales of recreational guns, airsoft, ammunition, assembly guides, or weapons meant for injury.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">🚬 Tobacco & Vaping</strong>
-                    <span className="text-gray-600">Tobacco sales, cigars, e-cigarettes, and rolling paper promotions.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">💊 Recreational & Unapproved Drugs</strong>
-                    <span className="text-gray-600">Substances that alter mental states or unapproved pharmaceutical supplements.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">🍷 Alcohol Online Sales</strong>
-                    <span className="text-gray-600">Facilitating unauthorized direct online sale or excessive/irresponsible consumption.</span>
-                  </div>
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                    <strong className="text-black block mb-1">🎲 Real-Money Online Gambling</strong>
-                    <span className="text-gray-600">Promoting real-money casinos, sportsbooks, or unverified lotteries.</span>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -225,7 +156,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                   <ul className="list-disc list-inside space-y-1 text-gray-600">
                     <li>Modify, reverse engineer, or decompile any software or APIs on YoStar;</li>
                     <li>Remove copyright, watermark, or proprietary notations from platform materials;</li>
-                    <li>Artificially inflate views, votes, or ad impressions via automated bots, click farms, or proxies;</li>
+                    <li>Artificially inflate views, votes, or engagement via automated bots, click farms, or proxies;</li>
                     <li>Transmit or publish harassing, fraudulent, obscene, or unlawful material;</li>
                     <li>Harvest or gather personal data of creators or visitors without explicit consent;</li>
                     <li>Send unauthorized marketing spam or malicious URL redirects.</li>
@@ -243,21 +174,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-1.5">3. Platform Revenue Sharing (70% / 30%)</h4>
+                  <h4 className="font-bold text-black text-sm mb-1.5">3. Liability & Disclaimers</h4>
                   <p className="text-gray-600 leading-relaxed">
-                    Eligible creators who connect a valid Google AdSense Publisher ID (<code className="bg-gray-200 px-1 py-0.5 rounded font-mono">pub-xxxxxxxx</code>) and pass platform quality milestones participate in the 70/30 programmatic ad split. 70% of impression opportunities rotate the creator's publisher unit, while 30% support platform infrastructure. All ad earnings are paid directly into your Google AdSense account by Google.
+                    The platform and materials are provided on an 'as is' basis. YOSTAR LTD makes no warranties, expressed or implied, regarding commercial profitability, continuous uptime, or third-party compatibility. In no event shall YOSTAR LTD be liable for indirect, consequential, or lost revenue damages arising from platform usage.
                   </p>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-1.5">4. Liability & Disclaimers</h4>
-                  <p className="text-gray-600 leading-relaxed">
-                    The platform and materials are provided on an 'as is' basis. YOSTAR LTD makes no warranties, expressed or implied, regarding commercial profitability, continuous uptime, or third-party ad acceptance. In no event shall YOSTAR LTD be liable for indirect, consequential, or lost revenue damages arising from platform usage.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-1.5">5. Governing Law & Jurisdiction</h4>
+                  <h4 className="font-bold text-black text-sm mb-1.5">4. Governing Law & Jurisdiction</h4>
                   <p className="text-gray-600 leading-relaxed">
                     These Terms of Service are governed by and construed in accordance with the laws of the United Kingdom and relevant international treaties. You submit to the exclusive jurisdiction of the competent courts.
                   </p>
@@ -284,8 +208,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                   <ul className="list-disc list-inside space-y-1 text-gray-600">
                     <li><strong>Account Credentials:</strong> Username, email address, password hashes, and profile bio.</li>
                     <li><strong>Content & Links:</strong> Photos, titles, verified URL links, and interaction tallies (upvotes, views).</li>
-                    <li><strong>Log & Technical Data:</strong> IP address, browser user-agent, operating system, timestamp, and device identifiers (used exclusively for anti-fraud rate limiting and milestone validation).</li>
-                    <li><strong>Monetization Identifiers:</strong> Google AdSense publisher ID (<code className="bg-gray-200 px-1 py-0.5 rounded font-mono">pub-xxxx</code>) to execute the dynamic ads.txt integration.</li>
+                    <li><strong>Log & Technical Data:</strong> IP address, browser user-agent, operating system, timestamp, and device identifiers (used exclusively for anti-fraud rate limiting and security).</li>
                   </ul>
                 </div>
 
@@ -293,9 +216,6 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
                   <h4 className="font-bold text-black text-sm mb-1.5">2. Third-Party Service Providers</h4>
                   <p className="text-gray-600 mb-2">We integrate with trusted enterprise providers:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 bg-white rounded-lg border border-gray-200">
-                      <strong>Google AdSense:</strong> Programmatic display ad delivery and ad revenue processing.
-                    </div>
                     <div className="p-2.5 bg-white rounded-lg border border-gray-200">
                       <strong>Google Web Risk / Vision API:</strong> Automated content safety, malware scanning, and NSFW detection.
                     </div>
@@ -337,65 +257,13 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'content-po
               </div>
             </div>
           )}
-
-          {/* TAB 4: MONETIZATION & PARTNER PROGRAM */}
-          {activeTab === 'monetization' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="p-5 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-200 rounded-2xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="w-6 h-6 text-amber-600" />
-                  <h3 className="text-lg font-black text-black">
-                    YoStar Partner Monetization Program Guidelines
-                  </h3>
-                </div>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  YoStar enables verified creators to earn passive revenue from page views and post engagement using the official Google AdSense 70/30 revenue share model.
-                </p>
-              </div>
-
-              <div className="space-y-4 text-xs">
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-2">🏆 Partner Eligibility Milestones</h4>
-                  <p className="text-gray-600 mb-3">To activate AdSense ads on your profile, you must achieve:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="p-3 bg-white rounded-xl border border-gray-200">
-                      <strong className="text-black block text-sm mb-1">1. Minimum 1 Quality Post</strong>
-                      <span className="text-gray-500">Original story, photo, or verified URL submission.</span>
-                    </div>
-                    <div className="p-3 bg-white rounded-xl border border-gray-200">
-                      <strong className="text-black block text-sm mb-1">2. 5,000 Verified Views</strong>
-                      <span className="text-gray-500">Genuine organic views across your published posts.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-2">🔄 Dynamic ads.txt Setup</h4>
-                  <p className="text-gray-600 leading-relaxed mb-2">
-                    Once you save your Google AdSense Publisher ID (<code className="bg-gray-200 px-1 py-0.5 rounded font-mono">pub-xxxxxxxxxxxxxxxx</code>) in your Profile Settings, YoStar automatically indexes your publisher record into our live global route:
-                  </p>
-                  <div className="p-2.5 bg-black text-[#FFFB93] font-mono text-xs rounded-xl flex items-center justify-between">
-                    <span>https://yo.star/ads.txt</span>
-                    <span className="text-[10px] text-gray-400">google.com, pub-xxxxxxxx, DIRECT, f08c47fec0942fa0</span>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <h4 className="font-bold text-black text-sm mb-1.5">⚖️ Anti-Fraud & Traffic Authenticity</h4>
-                  <p className="text-gray-600 leading-relaxed">
-                    Automated scripts, bot hits, VPN click loops, or artificial view manipulation are blocked by our server-side rate limiters. Accounts engaging in invalid traffic generation will have their AdSense monetization revoked and profile permanently banned.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 text-xs">
           <div className="flex items-center gap-2 text-gray-500">
             <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            <span>YoStar Network Policy • Compliant with Google AdSense Standards</span>
+            <span>YoStar Network Policy • Secure Creator Standards</span>
           </div>
           <button
             onClick={onClose}

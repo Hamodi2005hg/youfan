@@ -162,14 +162,14 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({ onStartEar
           <div className="bg-[#FFFB93] rounded-3xl p-8 sm:p-12 text-center shadow-lg border border-yellow-200 flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-1.5 bg-black/10 px-3 py-1 rounded-full text-xs font-bold text-black mb-6">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>70% Google AdSense Partner Share</span>
+              <span>YoStar Creator Engagement Index</span>
             </div>
 
             <p className="text-4xl sm:text-5xl md:text-6xl font-black text-black tracking-tight mb-2">
               ${annualEarnings.toLocaleString()}
             </p>
             <p className="text-base sm:text-lg font-semibold text-gray-800 mb-8">
-              Your potential annual earnings
+              Estimated annual platform reach value
             </p>
 
             <button
@@ -177,7 +177,7 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({ onStartEar
               onClick={onStartEarning}
               className="w-full py-4 px-8 bg-black hover:bg-gray-800 text-white font-bold text-base sm:text-lg rounded-2xl transition cursor-pointer shadow-md"
             >
-              Start Earning
+              Join Creator Network
             </button>
           </div>
         </div>

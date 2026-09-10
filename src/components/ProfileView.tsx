@@ -45,9 +45,6 @@ interface ProfileViewProps {
   onOpenCreatePost: () => void;
   onSelectPost: (post: Post) => void;
   onBackHome: () => void;
-  onUpdateAdSense: (pubId: string) => Promise<boolean>;
-  onSimulateMilestones: () => Promise<void>;
-  onOpenAdsTxt: () => void;
   onLogout: () => void;
   onVoteSuccess: () => void;
   onSelectProfile: (username: string) => void;
@@ -108,9 +105,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onOpenCreatePost,
   onSelectPost,
   onBackHome,
-  onUpdateAdSense,
-  onSimulateMilestones,
-  onOpenAdsTxt,
   onLogout,
   onVoteSuccess,
   onSelectProfile,

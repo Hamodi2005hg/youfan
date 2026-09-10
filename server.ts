@@ -588,87 +588,11 @@ function getClientIp(req: express.Request): string {
 }
 
 // =========================================================================
-// 1. Dynamic /ads.txt Route (Required by Render & YoStar AdSense specifications)
+// 1. ads.txt Route
 // =========================================================================
-app.get('/ads.txt', async (req, res) => {
-  try {
-    let qualifiedUsers: Array<{ adsense_pub_id: string; username: string }> = [];
-
-    // Attempt to query Supabase first
-    try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, username, adsense_pub_id');
-
-      if (!error && profiles && profiles.length > 0) {
-        for (const p of profiles) {
-          if (!p.adsense_pub_id || !p.adsense_pub_id.startsWith('pub-')) continue;
-          
-          // Query posts and sum views_count
-          const { data: userPosts } = await supabase
-            .from('posts')
-            .select('views_count')
-            .eq('user_id', p.id);
-          
-          const totalPostViews = userPosts?.reduce((sum: number, post: any) => sum + (post.views_count || 0), 0) || 0;
-          if (totalPostViews >= 5000) {
-            qualifiedUsers.push({
-              adsense_pub_id: p.adsense_pub_id,
-              username: p.username,
-            });
-          }
-        }
-      }
-    } catch {
-      // Supabase table may not be ready yet, fall back to memory store
-    }
-
-    // Fall back to memory store if no Supabase data yet
-    if (qualifiedUsers.length === 0) {
-      for (const [, p] of memoryProfiles.entries()) {
-        if (!p.adsense_pub_id) continue;
-        const totalPostViews = memoryPosts
-          .filter((post) => post.user_id === p.id)
-          .reduce((sum, post) => sum + (post.views_count || 0), 0);
-        if (totalPostViews >= 5000) {
-          qualifiedUsers.push({
-            adsense_pub_id: p.adsense_pub_id,
-            username: p.username,
-          });
-        }
-      }
-    }
-
-    // Generate ads.txt plain text
-    let adsTxtContent = `# =====================================================================
-# YoStar Creator Platform ads.txt
-# Generated Dynamically for Render Hosting
-# Direct Partnership with Google AdSense
-# =====================================================================
-
-# 1. Platform Master Account (YoStar Platform 30% Revenue Share)
-google.com, ${PLATFORM_ADSENSE_PUB_ID}, DIRECT, f08c47fec0942fa0
-
-# 2. Verified Monetized Creators (70% Creator Revenue Share)
-# Criteria: >= 5,000 Verified Unique Publication Views
-`;
-
-    if (qualifiedUsers.length === 0) {
-      adsTxtContent += `# No creators currently meet the milestone threshold.\n`;
-    } else {
-      for (const creator of qualifiedUsers) {
-        adsTxtContent += `google.com, ${creator.adsense_pub_id}, DIRECT, f08c47fec0942fa0 # @${creator.username}\n`;
-      }
-    }
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=60'); // 1 minute cache
-    return res.status(200).send(adsTxtContent);
-  } catch (err: any) {
-    console.error('Error generating ads.txt:', err);
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.status(200).send(`google.com, ${PLATFORM_ADSENSE_PUB_ID}, DIRECT, f08c47fec0942fa0\n`);
-  }
+app.get('/ads.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  return res.status(200).send('# YoStar Network\n');
 });
 
 // =========================================================================

@@ -1,15 +1,13 @@
 import React from 'react';
-import { ShieldCheck, FileText, Lock, DollarSign, Database, FileSpreadsheet } from 'lucide-react';
+import { ShieldCheck, FileText, Lock, Database } from 'lucide-react';
 
 interface FooterProps {
-  onOpenLegal: (tab: 'content-policy' | 'terms' | 'privacy' | 'monetization') => void;
-  onOpenAdsTxt: () => void;
+  onOpenLegal: (tab: 'content-policy' | 'terms' | 'privacy') => void;
   onOpenSupabaseModal: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenLegal,
-  onOpenAdsTxt,
   onOpenSupabaseModal,
 }) => {
   return (
@@ -26,19 +24,12 @@ export const Footer: React.FC<FooterProps> = ({
             </span>
           </div>
           <p className="text-xs text-gray-400">
-            YoStar Network LTD © 2026. All rights reserved. Programmatic Google AdSense 70/30 Split.
+            YoStar Network LTD © 2026. All rights reserved. Secure Creator Platform.
           </p>
         </div>
 
         {/* Links Navigation */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => onOpenLegal('monetization')}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
-          >
-            <DollarSign className="w-3.5 h-3.5 text-[#FFD60A]" />
-            Partner Program
-          </button>
           <button
             onClick={() => onOpenLegal('content-policy')}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
@@ -61,11 +52,11 @@ export const Footer: React.FC<FooterProps> = ({
             Privacy Policy
           </button>
           <button
-            onClick={onOpenAdsTxt}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#FFFB93]/20 hover:bg-[#FFFB93]/30 text-xs font-semibold text-[#FFFB93] transition cursor-pointer border-none"
+            onClick={onOpenSupabaseModal}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            ads.txt
+            <Database className="w-3.5 h-3.5 text-[#FFFB93]" />
+            Database Schema
           </button>
         </div>
       </div>
