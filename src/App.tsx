@@ -16,9 +16,10 @@ import { CreatePostModal } from './components/CreatePostModal';
 import { AuthModal } from './components/AuthModal';
 import { AdsTxtModal } from './components/AdsTxtModal';
 import { SupabaseModal } from './components/SupabaseModal';
+import { AdminPanel } from './components/AdminPanel';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<'home' | 'profile' | 'feed'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'profile' | 'feed' | 'admin'>('home');
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [profilePosts, setProfilePosts] = useState<Post[]>([]);
@@ -132,7 +133,9 @@ export default function App() {
         }
 
         const targetUser = getProfileFromUrl();
-        if (targetUser) {
+        if (targetUser === 'admin' || window.location.pathname.toLowerCase().includes('admin') || window.location.hash.toLowerCase().includes('admin')) {
+          setActiveView('admin');
+        } else if (targetUser) {
           handleSelectProfile(targetUser);
         } else {
           // No profile in URL -> Show the website's main landing/home interface!
@@ -189,6 +192,12 @@ export default function App() {
 
   const handleSelectProfile = (username: string, section?: string) => {
     const cleanUsername = username.replace('@', '');
+    if (cleanUsername === 'admin') {
+      setActiveView('admin');
+      window.history.pushState(null, '', '/admin');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (currentProfile?.username !== cleanUsername) {
       setCurrentProfile(null); // Clear to show loading state
     }
@@ -326,7 +335,9 @@ export default function App() {
 
       {/* Content Router */}
       <main className="flex-1 w-full">
-        {activeView === 'home' ? (
+        {activeView === 'admin' ? (
+          <AdminPanel onGoHome={handleGoHome} />
+        ) : activeView === 'home' ? (
           <div>
             {/* 1. Hero Section */}
             <HeroSection

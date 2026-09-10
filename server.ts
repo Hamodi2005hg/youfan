@@ -706,6 +706,179 @@ app.get('/api/profiles', async (req, res) => {
   res.json(list);
 });
 
+// =========================================================================
+// Admin Dashboard & Landing Page Management API
+// =========================================================================
+
+// Local persistence for landing page settings
+import fs from 'fs';
+const SETTINGS_FILE_PATH = path.join(process.cwd(), 'platform_settings.json');
+
+function getPlatformSettings() {
+  const defaultSettings = {
+    heroTitle: "Empower your creative voice \n& earn instantly.",
+    heroSub: "Launch your publisher profile, publish captivating content, and unlock direct reader support and ad earnings.",
+    showcaseImageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80",
+    activePublishersCount: 3490
+  };
+  try {
+    if (fs.existsSync(SETTINGS_FILE_PATH)) {
+      const fileData = fs.readFileSync(SETTINGS_FILE_PATH, 'utf-8');
+      return { ...defaultSettings, ...JSON.parse(fileData) };
+    }
+  } catch (err) {
+    console.error('Error reading platform settings:', err);
+  }
+  return defaultSettings;
+}
+
+function savePlatformSettings(settings: any) {
+  try {
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Error saving platform settings:', err);
+    return false;
+  }
+}
+
+// Map country code to beautiful Arabic name
+function getCountryName(code: string): string {
+  const countries: Record<string, string> = {
+    'EG': 'مصر',
+    'SA': 'السعودية',
+    'AE': 'الإمارات',
+    'JO': 'الأردن',
+    'MA': 'المغرب',
+    'DZ': 'الجزائر',
+    'TN': 'تونس',
+    'LY': 'ليبيا',
+    'SD': 'السودان',
+    'IQ': 'العراق',
+    'SY': 'سوريا',
+    'LB': 'لبنان',
+    'PS': 'فلسطين',
+    'YE': 'اليمن',
+    'OM': 'عمان',
+    'QA': 'قطر',
+    'KW': 'الكويت',
+    'BH': 'البحرين',
+    'US': 'الولايات المتحدة',
+    'GB': 'المملكة المتحدة',
+    'CA': 'كندا',
+    'FR': 'فرنسا',
+    'DE': 'ألمانيا',
+    'TR': 'تركيا',
+    'IN': 'الهند',
+    'PK': 'باكستان',
+  };
+  return countries[code.toUpperCase()] || code || 'مصر';
+}
+
+app.get('/api/platform-settings', (req, res) => {
+  res.json(getPlatformSettings());
+});
+
+app.post('/api/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@youfan.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+  if (email === adminEmail && password === adminPassword) {
+    return res.json({ success: true, token: 'admin-super-secret-token' });
+  }
+  return res.status(401).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const enhanced = (profiles || []).map((p: any) => {
+      let country = 'مصر';
+      if (p.social_links) {
+        let linksObj = p.social_links;
+        if (typeof linksObj === 'string') {
+          try { linksObj = JSON.parse(linksObj); } catch { linksObj = {}; }
+        }
+        if (linksObj && linksObj.country) {
+          country = linksObj.country;
+        }
+      }
+      return {
+        ...p,
+        country
+      };
+    });
+
+    res.json(enhanced);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users list' });
+  }
+});
+
+app.post('/api/admin/ban', async (req, res) => {
+  const { userId, isBanned } = req.body;
+  if (!userId) return res.status(400).json({ error: 'ID is required' });
+
+  try {
+    await updateProfileFailSafe(userId, { is_banned: isBanned });
+    
+    // Sync memory
+    for (const [key, p] of memoryProfiles.entries()) {
+      if (p.id === userId) {
+        p.is_banned = isBanned;
+        memoryProfiles.set(key, p);
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update ban status' });
+  }
+});
+
+app.post('/api/admin/settings', (req, res) => {
+  const { heroTitle, heroSub, showcaseImageUrl, activePublishersCount } = req.body;
+  const current = getPlatformSettings();
+
+  if (heroTitle !== undefined) current.heroTitle = heroTitle;
+  if (heroSub !== undefined) current.heroSub = heroSub;
+  if (showcaseImageUrl !== undefined) current.showcaseImageUrl = showcaseImageUrl;
+  if (activePublishersCount !== undefined) current.activePublishersCount = Number(activePublishersCount);
+
+  savePlatformSettings(current);
+  res.json({ success: true, settings: current });
+});
+
+app.post('/api/admin/notify', async (req, res) => {
+  const { userId, title, message } = req.body;
+  if (!userId || !title || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const { error } = await supabase.from('notifications').insert([
+      {
+        user_id: userId,
+        title,
+        message,
+        type: 'alert',
+        is_read: false
+      }
+    ]);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send alert' });
+  }
+});
+
 // Google Auth Endpoint
 app.post('/api/auth/google', async (req, res) => {
   const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
@@ -827,6 +1000,8 @@ app.post('/api/auth/google', async (req, res) => {
     }
     if (exists) return res.status(400).json({ error: 'Nickname is already taken. Please choose another one.' });
 
+    const userCountry = getCountryName(vpnCheck.country || 'EG');
+
     const newProfile = {
       id,
       username: cleanUsername,
@@ -836,7 +1011,7 @@ app.post('/api/auth/google', async (req, res) => {
       adsense_pub_id: '',
       views_count: 0,
       created_at: new Date().toISOString(),
-      social_links: { email: cleanEmail },
+      social_links: { email: cleanEmail, country: userCountry },
       is_banned: false
     };
 
@@ -868,6 +1043,7 @@ app.post('/api/auth/google', async (req, res) => {
            try { foundProfile.social_links = JSON.parse(foundProfile.social_links); } catch { foundProfile.social_links = {}; }
          }
          foundProfile.social_links.email = cleanEmail;
+         foundProfile.social_links.country = getCountryName(vpnCheck.country || 'EG');
          foundProfile.email = cleanEmail;
          memoryProfiles.set(foundProfile.username.toLowerCase(), foundProfile);
          await updateProfileFailSafe(foundProfile.id, { 
@@ -875,6 +1051,18 @@ app.post('/api/auth/google', async (req, res) => {
            email: cleanEmail
          });
        }
+     } else {
+       // Profile exists, let's sync/refresh its country info on login
+       if (!foundProfile.social_links) {
+         foundProfile.social_links = {};
+       } else if (typeof foundProfile.social_links === 'string') {
+         try { foundProfile.social_links = JSON.parse(foundProfile.social_links); } catch { foundProfile.social_links = {}; }
+       }
+       foundProfile.social_links.country = getCountryName(vpnCheck.country || 'EG');
+       memoryProfiles.set(foundProfile.username.toLowerCase(), foundProfile);
+       await updateProfileFailSafe(foundProfile.id, {
+         social_links: foundProfile.social_links
+       });
      }
 
     if (foundProfile) {

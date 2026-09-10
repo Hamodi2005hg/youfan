@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, Sparkles, Share2, Link as LinkIcon } from 'lucide-react';
 
 export const EarnInfoSection: React.FC = () => {
+  const [showcaseImg, setShowcaseImg] = useState('https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80');
+
+  useEffect(() => {
+    fetch('/api/platform-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.showcaseImageUrl) {
+          setShowcaseImg(data.showcaseImageUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const steps = [
     {
       icon: Sparkles,
@@ -55,7 +67,7 @@ export const EarnInfoSection: React.FC = () => {
             <div className="bg-white rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden">
               <div className="relative h-[420px] rounded-2xl overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80"
+                  src={showcaseImg}
                   alt="Creator profile showcase"
                   className="w-full h-full object-cover"
                 />

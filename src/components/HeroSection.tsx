@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface HeroSectionProps {
@@ -7,6 +7,20 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
   const [handle, setHandle] = useState('');
+  const [heroTitle, setHeroTitle] = useState('Empower your creative voice \n& earn instantly.');
+  const [heroSub, setHeroSub] = useState('Launch your publisher profile, publish captivating content, and unlock direct reader support and ad earnings.');
+  const [publishersCount, setPublishersCount] = useState(3490);
+
+  useEffect(() => {
+    fetch('/api/platform-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.heroTitle) setHeroTitle(data.heroTitle);
+        if (data.heroSub) setHeroSub(data.heroSub);
+        if (data.activePublishersCount) setPublishersCount(data.activePublishersCount);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,12 +39,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
           <span>YoStar Creator Hub & Monetization Network</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl md:text-[76px] font-black leading-[1.08] tracking-tight text-black mb-4">
-          Empower your creative voice <br />
-          & earn instantly.
+        <h1 className="text-4xl sm:text-6xl md:text-[76px] font-black leading-[1.08] tracking-tight text-black mb-4 whitespace-pre-line">
+          {heroTitle}
         </h1>
         <h2 className="text-xl sm:text-2xl md:text-[26px] font-normal text-gray-700 mb-8 md:mb-12">
-          Launch your publisher profile, publish captivating content, and unlock direct reader support and ad earnings.
+          {heroSub}
         </h2>
 
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-6">
@@ -85,7 +98,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Publishers</p>
-              <p className="text-2xl font-black text-black leading-none">+3,490</p>
+              <p className="text-2xl font-black text-black leading-none">+{publishersCount.toLocaleString()}</p>
             </div>
           </div>
         </div>
