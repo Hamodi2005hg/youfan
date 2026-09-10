@@ -310,6 +310,9 @@ app.use(async (req, res, next) => {
   // 1. Check if IP is permanently blacklisted in database/memory
   if (isIpBlacklisted(clientIp)) {
     console.log(`[Security Engine] 🛑 Blocked permanently blacklisted IP: ${clientIp}`);
+    if (isApiRequest) {
+      return res.status(403).json({ error: 'Access Blocked: Your IP address has been permanently blacklisted for system manipulation.' });
+    }
     return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
       '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Banned IP</h1>' +
       '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your IP address has been permanently blacklisted for system manipulation.</p>' +
@@ -335,6 +338,9 @@ app.use(async (req, res, next) => {
 
     if (currentProfile && currentProfile.is_banned) {
       console.log(`[Security Engine] 🛑 Blocked banned user: @${currentProfile.username} (ID: ${activeSessionProfileId})`);
+      if (isApiRequest) {
+        return res.status(403).json({ error: 'Access Blocked: Your account has been permanently suspended for violating our terms of service.' });
+      }
       return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
         '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Permanently Banned</h1>' +
         '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your account has been permanently suspended for violating our terms of service.</p>' +
@@ -354,6 +360,9 @@ app.use(async (req, res, next) => {
       } catch (err) {
         console.error('Failed to ban profile in DB:', err);
       }
+    }
+    if (isApiRequest) {
+      return res.status(403).json({ error: `Access Blocked: ${behavior.reason}` });
     }
     return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
       '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked</h1>' +
