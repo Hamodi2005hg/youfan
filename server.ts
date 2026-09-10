@@ -310,7 +310,24 @@ app.use(async (req, res, next) => {
   console.log(`[Security Engine] 🔍 Checking IP: ${clientIp} | Route: ${req.method} ${req.path}`);
 
   // 1. Check if IP is permanently blacklisted in database/memory
-  if (isIpBlacklisted(clientIp)) {
+  let isBannedIp = isIpBlacklisted(clientIp);
+  if (isBannedIp) {
+    // Double check with DB to see if they unbanned themselves
+    try {
+      const { data, error } = await supabase.from('blacklisted_ips').select('ip').eq('ip', clientIp).maybeSingle();
+      if (error || !data) {
+        // No longer in database! They unbanned themselves, let's sync local memory cache
+        isBannedIp = false;
+        // Re-sync cache in background
+        const { syncBlacklistedIps } = require('./vpnBlocker');
+        syncBlacklistedIps(supabase).catch(() => {});
+      }
+    } catch {
+      // Fallback: keep blocked if db query fails
+    }
+  }
+
+  if (isBannedIp) {
     console.log(`[Security Engine] 🛑 Blocked permanently blacklisted IP: ${clientIp}`);
     if (isApiRequest) {
       return res.status(403).json({ error: 'Access Blocked: Your IP address has been permanently blacklisted for system manipulation.' });
@@ -321,21 +338,25 @@ app.use(async (req, res, next) => {
       '</div>');
   }
 
-  // 2. If user is logged in, check if their profile is already banned
+  // 2. If user is logged in, check if their profile is already banned (Query Supabase directly first for instant dynamic updates)
   let currentProfile: any = null;
   if (activeSessionProfileId) {
-    currentProfile = memoryProfiles.get(activeSessionProfileId.replace('prof_', ''));
-    if (!currentProfile) {
-      currentProfile = Array.from(memoryProfiles.values()).find(p => p.id === activeSessionProfileId);
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', activeSessionProfileId).maybeSingle();
+      if (data) {
+        currentProfile = data;
+        // Sync cache with latest status
+        memoryProfiles.set(data.username.toLowerCase(), data);
+      }
+    } catch (err) {
+      console.error('[Security Engine] Failed to query latest profile ban status:', err);
     }
+
     if (!currentProfile) {
-      try {
-        const { data } = await supabase.from('profiles').select('*').eq('id', activeSessionProfileId).maybeSingle();
-        if (data) {
-          currentProfile = data;
-          memoryProfiles.set(data.username.toLowerCase(), data);
-        }
-      } catch {}
+      currentProfile = memoryProfiles.get(activeSessionProfileId.replace('prof_', ''));
+      if (!currentProfile) {
+        currentProfile = Array.from(memoryProfiles.values()).find(p => p.id === activeSessionProfileId);
+      }
     }
 
     if (currentProfile && currentProfile.is_banned) {

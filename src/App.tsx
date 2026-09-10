@@ -134,15 +134,11 @@ export default function App() {
         const targetUser = getProfileFromUrl();
         if (targetUser) {
           handleSelectProfile(targetUser);
-        } else if (fetchedUser?.username) {
-          handleSelectProfile(fetchedUser.username, 'global_feed');
         } else {
-          // Default entry: open Creators Feed directly for any visitor
-          if (fetchedProfiles.length > 0) {
-            handleSelectProfile(fetchedProfiles[0].username, 'global_feed');
-          } else {
-            handleSelectProfile('creator_hub', 'global_feed');
-          }
+          // No profile in URL -> Show the website's main landing/home interface!
+          setActiveView('home');
+          setSelectedUsername(null);
+          setCurrentProfile(null);
         }
       } catch (err) {
         console.error('Error in initApp:', err);
@@ -208,20 +204,16 @@ export default function App() {
   };
 
   const handleGoHome = () => {
-    if (currentUser) {
-      handleSelectProfile(currentUser.username, 'global_feed');
-    } else {
-      setActiveView('home');
-      setActiveSection(undefined);
-      setSelectedUsername(null);
-      setCurrentProfile(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      // Update URL to home
-      window.history.pushState(null, '', '/');
-      
-      loadData();
-    }
+    setActiveView('home');
+    setActiveSection(undefined);
+    setSelectedUsername(null);
+    setCurrentProfile(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Update URL to home
+    window.history.pushState(null, '', '/');
+    
+    loadData();
   };
 
   const handleLogout = async () => {
