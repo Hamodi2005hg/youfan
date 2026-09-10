@@ -151,6 +151,49 @@ async function syncBlacklistedIps(supabase: SupabaseClient) {
   }
 }
 
+// Fetch massive public lists of commercial VPN/Proxy and Datacenter IP ranges to catch virtually all commercial VPN services (NordVPN, ExpressVPN, Surfshark, etc.)
+async function fetchGithubVpnLists() {
+  try {
+    console.log('[VPN Blocker] Downloading comprehensive VPN range lists from GitHub...');
+    const res = await fetch('https://raw.githubusercontent.com/X4BNet/lists_vpn/main/ipv4.txt');
+    if (res.ok) {
+      const text = await res.text();
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+      let count = 0;
+      for (const line of lines) {
+        const parsed = parseCidr(line);
+        if (parsed) {
+          loadedCidrs.push(parsed);
+          count++;
+        }
+      }
+      console.log(`[VPN Blocker] Dynamically loaded ${count} VPN & Proxy ranges from X4BNet lists_vpn.`);
+    }
+  } catch (err) {
+    console.error('[VPN Blocker] Failed to fetch X4BNet VPN lists, using pre-baked fallback.', err);
+  }
+
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/ejrv/VPN-IP-Addresses/master/vpn-ipv4.txt');
+    if (res.ok) {
+      const text = await res.text();
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+      let count = 0;
+      for (const line of lines) {
+        const cidrStr = line.includes('/') ? line : `${line}/32`;
+        const parsed = parseCidr(cidrStr);
+        if (parsed) {
+          loadedCidrs.push(parsed);
+          count++;
+        }
+      }
+      console.log(`[VPN Blocker] Dynamically loaded ${count} individual VPN IPs/ranges from ejrv VPN-IP-Addresses.`);
+    }
+  } catch (err) {
+    console.error('[VPN Blocker] Failed to fetch ejrv VPN-IP-Addresses, using pre-baked fallback.', err);
+  }
+}
+
 // 3. Main Init Function
 export async function initializeVpnBlocker(supabase: SupabaseClient) {
   console.log('[VPN Blocker] Initializing offline security engine...');
@@ -162,7 +205,8 @@ export async function initializeVpnBlocker(supabase: SupabaseClient) {
   Promise.all([
     fetchTorExitNodes(),
     fetchCloudflareIps(),
-    fetchAwsIps()
+    fetchAwsIps(),
+    fetchGithubVpnLists()
   ]).catch(err => {
     console.error('[VPN Blocker] Error in asynchronous IP updates:', err);
   });

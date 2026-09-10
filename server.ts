@@ -26,6 +26,58 @@ const PLATFORM_ADSENSE_PUB_ID = process.env.PLATFORM_ADSENSE_PUB_ID || 'pub-1082
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Fail-safe helper to handle upserting profiles to Supabase (bypasses missing columns like social_links or category if they are absent in the user's table)
+async function upsertProfileFailSafe(newProfile: any) {
+  try {
+    const { error } = await supabase.from('profiles').upsert([newProfile]);
+    if (error) {
+      console.error('❌ Supabase Profiles Upsert Error:', error.message, error.details);
+      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
+        console.log('🔄 Retrying profiles upsert without social_links and category...');
+        const cleanProfile = { ...newProfile };
+        delete cleanProfile.social_links;
+        delete cleanProfile.category;
+        const { error: retryError } = await supabase.from('profiles').upsert([cleanProfile]);
+        if (retryError) {
+          console.error('❌ Retry profiles upsert failed:', retryError.message);
+        } else {
+          console.log('✅ Profiles upsert succeeded after stripping extra columns.');
+        }
+      }
+    } else {
+      console.log('✅ Profiles upsert succeeded directly.');
+    }
+  } catch (err: any) {
+    console.error('❌ Profiles upsert exception:', err.message);
+  }
+}
+
+// Fail-safe helper to handle updating profiles on Supabase
+async function updateProfileFailSafe(id: string, updateData: any) {
+  try {
+    const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
+    if (error) {
+      console.error('❌ Supabase Profiles Update Error:', error.message, error.details);
+      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category')) {
+        console.log('🔄 Retrying profiles update without social_links and category...');
+        const cleanData = { ...updateData };
+        delete cleanData.social_links;
+        delete cleanData.category;
+        const { error: retryError } = await supabase.from('profiles').update(cleanData).eq('id', id);
+        if (retryError) {
+          console.error('❌ Retry profiles update failed:', retryError.message);
+        } else {
+          console.log('✅ Profiles update succeeded after stripping extra columns.');
+        }
+      }
+    } else {
+      console.log('✅ Profiles update succeeded directly.');
+    }
+  } catch (err: any) {
+    console.error('❌ Profiles update exception:', err.message);
+  }
+}
+
 // Google Cloud Vision API Safety Check
 async function checkImageSafety(imageBuffer: Buffer): Promise<void> {
   const apiKey = process.env.GOOGLE_VISION_API_KEY || 'AIzaSyB66Y-lnCNZYRLa_ZDd5twlEgAMT5wGFsk';
@@ -226,11 +278,22 @@ let activeSessionProfileId: string | null = null;
 // --- Security Middleware to Block & Ban VPN/Proxy/Tor and Blacklisted IPs ---
 app.use(async (req, res, next) => {
   const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
-  const clientIp = cleanIp(rawIp.split(',')[0]);
+  let clientIp = cleanIp(rawIp.split(',')[0]);
 
-  // Exclude local development and local healthchecks
-  if (clientIp === '127.0.0.1' || clientIp === 'localhost' || clientIp === '::1') {
-    return next();
+  // Support query parameter '?debug_ip=x.x.x.x' or header 'x-debug-ip' to easily test and simulate VPN/Proxy block from any IP
+  if (req.query.debug_ip) {
+    clientIp = cleanIp(req.query.debug_ip as string);
+    console.log(`[Security Engine] 🛠️ Simulating client IP from query parameter debug_ip: ${clientIp}`);
+  } else if (req.headers['x-debug-ip']) {
+    clientIp = cleanIp(req.headers['x-debug-ip'] as string);
+    console.log(`[Security Engine] 🛠️ Simulating client IP from header x-debug-ip: ${clientIp}`);
+  }
+
+  // Exclude local development and local healthchecks (unless overridden by debug_ip)
+  if (!req.query.debug_ip && !req.headers['x-debug-ip']) {
+    if (clientIp === '127.0.0.1' || clientIp === 'localhost' || clientIp === '::1') {
+      return next();
+    }
   }
 
   const isApiRequest = req.path.startsWith('/api/');
@@ -240,8 +303,11 @@ app.use(async (req, res, next) => {
     return next();
   }
 
+  console.log(`[Security Engine] 🔍 Checking IP: ${clientIp} | Route: ${req.method} ${req.path}`);
+
   // 1. Check if IP is permanently blacklisted in database/memory
   if (isIpBlacklisted(clientIp)) {
+    console.log(`[Security Engine] 🛑 Blocked permanently blacklisted IP: ${clientIp}`);
     return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
       '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
       '<p style="color:#aaa; margin-top:10px; font-size:18px;">تم تسجيل عنوان الآيبي الخاص بك ومطابقته بقائمة الحظر الدائم لتجاوز الحماية.</p>' +
@@ -266,6 +332,7 @@ app.use(async (req, res, next) => {
     }
 
     if (currentProfile && currentProfile.is_banned) {
+      console.log(`[Security Engine] 🛑 Blocked banned user: @${currentProfile.username} (ID: ${activeSessionProfileId})`);
       return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
         '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
         '<p style="color:#aaa; margin-top:10px; font-size:18px;">حسابك الشخصي محظور بشكل دائم لمخالفة القوانين وتلاعبك بالأنظمة.</p>' +
@@ -277,13 +344,14 @@ app.use(async (req, res, next) => {
   const vpnDetected = isVpnOrProxy(clientIp);
 
   if (vpnDetected) {
-    console.log(`[Security Threat Blocked] VPN/Proxy detected from client IP: ${clientIp}`);
+    console.log(`[Security Engine] ⚠️ VPN/Proxy/Tor detected on IP: ${clientIp}`);
 
     // Scenario A: User is logged in -> Permanent ban of profile and IP!
     if (activeSessionProfileId && currentProfile) {
       currentProfile.is_banned = true;
       try {
         await supabase.from('profiles').update({ is_banned: true }).eq('id', activeSessionProfileId);
+        console.log(`[Security Engine] 🔨 Banned profile @${currentProfile.username} in database.`);
       } catch (err) {
         console.error('Failed to ban profile in DB:', err);
       }
@@ -302,6 +370,7 @@ app.use(async (req, res, next) => {
                                req.path.startsWith('/api/auth');
     
     if (isFeedOrPostOrAuth || isDocRequest) {
+      console.log(`[Security Engine] 🛑 Blocking VPN user from access. Showing Warning Screen.`);
       return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; border: 2px solid #FF2D55; margin: 20px; border-radius: 16px;">' +
         '<h1 style="color:#FF2D55; font-size:32px; font-weight:900; margin-bottom:15px;">⚠️ عذراً، لا يمكنك تصفح المنشورات والمنصة باستخدام VPN</h1>' +
         '<p style="color:#e0e0e0; font-size:18px; max-width:600px; line-height:1.6; margin: 0 auto;">' +
@@ -605,9 +674,7 @@ app.post('/api/auth/google', async (req, res) => {
           // Self-healing: Update the profile with the new direct 'email' field in Supabase & memory
           existingProfileByEmail.email = cleanEmail;
           memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-          try {
-            await supabase.from('profiles').update({ email: cleanEmail }).eq('id', existingProfileByEmail.id);
-          } catch {}
+          await updateProfileFailSafe(existingProfileByEmail.id, { email: cleanEmail });
         }
       }
     } catch {}
@@ -641,13 +708,12 @@ app.post('/api/auth/google', async (req, res) => {
       adsense_pub_id: '',
       views_count: 0,
       created_at: new Date().toISOString(),
-      social_links: { email: cleanEmail }
+      social_links: { email: cleanEmail },
+      is_banned: false
     };
 
     memoryProfiles.set(cleanUsername, newProfile as any);
-    try {
-      await supabase.from('profiles').upsert([newProfile]);
-    } catch {}
+    await upsertProfileFailSafe(newProfile);
 
     activeSessionProfileId = id;
     return res.status(201).json(newProfile);
@@ -676,12 +742,10 @@ app.post('/api/auth/google', async (req, res) => {
          foundProfile.social_links.email = cleanEmail;
          foundProfile.email = cleanEmail;
          memoryProfiles.set(foundProfile.username.toLowerCase(), foundProfile);
-         try {
-           await supabase.from('profiles').update({ 
-             social_links: foundProfile.social_links,
-             email: cleanEmail
-           }).eq('id', foundProfile.id);
-         } catch {}
+         await updateProfileFailSafe(foundProfile.id, { 
+           social_links: foundProfile.social_links,
+           email: cleanEmail
+         });
        }
      }
 
@@ -1777,15 +1841,13 @@ app.post('/api/profile/update', async (req, res) => {
   
   memoryProfiles.set(cleanUsername, profile);
 
-  try {
-    await supabase.from('profiles').update({
-      bio: profile.bio,
-      category: (profile as any).category,
-      avatar_url: profile.avatar_url,
-      social_links: (profile as any).social_links,
-      updated_at: new Date().toISOString()
-    }).eq('id', profile.id);
-  } catch {}
+  await updateProfileFailSafe(profile.id, {
+    bio: profile.bio,
+    category: (profile as any).category,
+    avatar_url: profile.avatar_url,
+    social_links: (profile as any).social_links,
+    updated_at: new Date().toISOString()
+  });
 
   res.json({ success: true, profile });
 });
