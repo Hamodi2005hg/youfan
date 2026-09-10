@@ -9,13 +9,25 @@ const SQL_SCHEMA = `-- 1. Profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
+  email TEXT DEFAULT '',
   bio TEXT DEFAULT '',
   avatar_url TEXT DEFAULT '',
+  category TEXT DEFAULT 'General',
   adsense_pub_id TEXT DEFAULT '',
   views_count INT DEFAULT 0,
+  is_banned BOOLEAN DEFAULT false,
+  last_ip TEXT DEFAULT '',
+  social_links JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Optional: If table already exists, add missing columns safely
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_ip TEXT DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}'::jsonb;
 
 -- 2. Posts table
 CREATE TABLE IF NOT EXISTS public.posts (
@@ -24,6 +36,9 @@ CREATE TABLE IF NOT EXISTS public.posts (
   image_url TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT DEFAULT '',
+  link_url TEXT DEFAULT '',
+  upvotes INT DEFAULT 0,
+  downvotes INT DEFAULT 0,
   views_count INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

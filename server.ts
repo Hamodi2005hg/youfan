@@ -27,28 +27,41 @@ const PLATFORM_ADSENSE_PUB_ID = process.env.PLATFORM_ADSENSE_PUB_ID || 'pub-1082
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Fail-safe helper to handle upserting profiles to Supabase (bypasses missing columns like social_links, category, or last_ip if they are absent in the user's table)
+// Fail-safe helper to handle upserting profiles to Supabase (preserves email and extra columns, fallback gracefully if columns do not exist)
 async function upsertProfileFailSafe(newProfile: any) {
   try {
     const cleanProfile = { ...newProfile };
-    delete cleanProfile.email; // Stripping email since the profiles table does not have an email column
+    // Ensure email is also mirrored into social_links.email if present
+    if (cleanProfile.email && cleanProfile.social_links) {
+      if (typeof cleanProfile.social_links === 'object') {
+        cleanProfile.social_links.email = cleanProfile.email;
+      }
+    }
     const { error } = await supabase.from('profiles').upsert([cleanProfile]);
     if (error) {
       console.error('❌ Supabase Profiles Upsert Error:', error.message, error.details);
-      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip')) {
-        console.log('🔄 Retrying profiles upsert without extra/missing columns...');
-        delete cleanProfile.social_links;
-        delete cleanProfile.category;
-        delete cleanProfile.last_ip;
+      if (error.message.includes('column') || error.message.includes('email') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip') || error.message.includes('is_banned')) {
+        console.log('🔄 Retrying profiles upsert by adjusting missing columns...');
+        if (error.message.includes('email')) delete cleanProfile.email;
+        if (error.message.includes('social_links')) delete cleanProfile.social_links;
+        if (error.message.includes('category')) delete cleanProfile.category;
+        if (error.message.includes('last_ip')) delete cleanProfile.last_ip;
+        if (error.message.includes('is_banned')) delete cleanProfile.is_banned;
         const { error: retryError } = await supabase.from('profiles').upsert([cleanProfile]);
         if (retryError) {
-          console.error('❌ Retry profiles upsert failed:', retryError.message);
+          console.error('❌ Retry profiles upsert failed, stripping optional fields:', retryError.message);
+          delete cleanProfile.email;
+          delete cleanProfile.social_links;
+          delete cleanProfile.category;
+          delete cleanProfile.last_ip;
+          delete cleanProfile.is_banned;
+          await supabase.from('profiles').upsert([cleanProfile]);
         } else {
-          console.log('✅ Profiles upsert succeeded after stripping extra columns.');
+          console.log('✅ Profiles upsert succeeded after adjusting columns.');
         }
       }
     } else {
-      console.log('✅ Profiles upsert succeeded directly.');
+      console.log('✅ Profiles upsert succeeded directly with email stored.');
     }
   } catch (err: any) {
     console.error('❌ Profiles upsert exception:', err.message);
@@ -59,20 +72,27 @@ async function upsertProfileFailSafe(newProfile: any) {
 async function updateProfileFailSafe(id: string, updateData: any) {
   try {
     const cleanData = { ...updateData };
-    delete cleanData.email; // Stripping email since the profiles table does not have an email column
     const { error } = await supabase.from('profiles').update(cleanData).eq('id', id);
     if (error) {
       console.error('❌ Supabase Profiles Update Error:', error.message, error.details);
-      if (error.message.includes('column') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip')) {
-        console.log('🔄 Retrying profiles update without extra/missing columns...');
-        delete cleanData.social_links;
-        delete cleanData.category;
-        delete cleanData.last_ip;
+      if (error.message.includes('column') || error.message.includes('email') || error.message.includes('social_links') || error.message.includes('category') || error.message.includes('last_ip') || error.message.includes('is_banned')) {
+        console.log('🔄 Retrying profiles update by adjusting missing columns...');
+        if (error.message.includes('email')) delete cleanData.email;
+        if (error.message.includes('social_links')) delete cleanData.social_links;
+        if (error.message.includes('category')) delete cleanData.category;
+        if (error.message.includes('last_ip')) delete cleanData.last_ip;
+        if (error.message.includes('is_banned')) delete cleanData.is_banned;
         const { error: retryError } = await supabase.from('profiles').update(cleanData).eq('id', id);
         if (retryError) {
-          console.error('❌ Retry profiles update failed:', retryError.message);
+          console.error('❌ Retry profiles update failed, stripping optional fields:', retryError.message);
+          delete cleanData.email;
+          delete cleanData.social_links;
+          delete cleanData.category;
+          delete cleanData.last_ip;
+          delete cleanData.is_banned;
+          await supabase.from('profiles').update(cleanData).eq('id', id);
         } else {
-          console.log('✅ Profiles update succeeded after stripping extra columns.');
+          console.log('✅ Profiles update succeeded after adjusting columns.');
         }
       }
     } else {
@@ -1271,28 +1291,29 @@ app.get('/api/profile/:username', async (req, res) => {
 
 // Create or update profile
 app.post('/api/profiles', async (req, res) => {
-  const { username, bio, avatar_url } = req.body;
+  const { username, bio, avatar_url, email } = req.body;
   if (!username) {
     return res.status(400).json({ error: 'Username is required' });
   }
 
   const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   const id = `prof_${cleanUsername}`;
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
 
   const newProfile: Profile = {
     id,
     username: cleanUsername,
-    bio: bio || 'Content creator on YoFan',
+    email: cleanEmail,
+    bio: bio || 'Content creator on YoStar',
     avatar_url: avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`,
     adsense_pub_id: '',
     views_count: 0,
     created_at: new Date().toISOString(),
+    social_links: cleanEmail ? { email: cleanEmail } : {}
   };
 
-  // Insert to Supabase
-  try {
-    await supabase.from('profiles').upsert([newProfile]);
-  } catch {}
+  // Insert to Supabase using fail-safe helper
+  await upsertProfileFailSafe(newProfile);
 
   memoryProfiles.set(cleanUsername, newProfile);
   res.status(201).json(newProfile);
