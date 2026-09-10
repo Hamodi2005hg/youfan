@@ -1,12 +1,24 @@
 import React from 'react';
+<<<<<<< HEAD
 import { ShieldCheck, FileText, Lock } from 'lucide-react';
 
 interface FooterProps {
   onOpenLegal: (tab: 'content-policy' | 'terms' | 'privacy') => void;
+=======
+import { ShieldCheck, FileText, Lock, Database } from 'lucide-react';
+
+interface FooterProps {
+  onOpenLegal: (tab: 'content-policy' | 'terms' | 'privacy') => void;
+  onOpenSupabaseModal: () => void;
+>>>>>>> origin/main
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenLegal,
+<<<<<<< HEAD
+=======
+  onOpenSupabaseModal,
+>>>>>>> origin/main
 }) => {
   return (
     <footer className="w-full bg-black text-white pt-16 pb-20 px-5 md:px-10 mt-auto border-t border-white/10">
@@ -49,6 +61,16 @@ export const Footer: React.FC<FooterProps> = ({
             <Lock className="w-3.5 h-3.5 text-[#007AFF]" />
             Privacy Policy
           </button>
+<<<<<<< HEAD
+=======
+          <button
+            onClick={onOpenSupabaseModal}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
+          >
+            <Database className="w-3.5 h-3.5 text-[#FFFB93]" />
+            Database Schema
+          </button>
+>>>>>>> origin/main
         </div>
       </div>
     </footer>
