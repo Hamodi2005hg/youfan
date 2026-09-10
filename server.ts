@@ -524,7 +524,10 @@ app.post('/api/auth/google', async (req, res) => {
 
 // Get profile by username + 24h Anti-Fraud View Tracker
 app.get('/api/profile/:username', async (req, res) => {
-  const { username } = req.params;
+  let { username } = req.params;
+  if (username && username.startsWith('@')) {
+    username = username.slice(1);
+  }
   const clientIp = getClientIp(req);
 
   let profile: Profile | null = null;
@@ -659,7 +662,10 @@ app.post('/api/profiles', async (req, res) => {
 
 // Get posts for a user
 app.get('/api/profile/:username/posts', async (req, res) => {
-  const { username } = req.params;
+  let { username } = req.params;
+  if (username && username.startsWith('@')) {
+    username = username.slice(1);
+  }
   const cleanUsername = username.toLowerCase();
 
   // Find profile
@@ -1200,7 +1206,10 @@ app.post('/api/posts/:id/comments', async (req, res) => {
 // 3. AdSense Revenue Sharing Logic (70% Creator / 30% Platform)
 // =========================================================================
 app.get('/api/ads-config/:username', async (req, res) => {
-  const { username } = req.params;
+  let { username } = req.params;
+  if (username && username.startsWith('@')) {
+    username = username.slice(1);
+  }
   const cleanUsername = username.toLowerCase();
 
   let profile = memoryProfiles.get(cleanUsername);
