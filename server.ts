@@ -212,6 +212,9 @@ const memoryComments: Comment[] = [];
 // 24-hour IP view logs for anti-fraud
 const viewLogs: ViewLog[] = [];
 
+// Global session state for the active profile
+let activeSessionProfileId: string | null = null;
+
 // Helper: check and record 24h IP view
 function recordIpView(profileId: string, clientIp: string): boolean {
   const now = Date.now();
@@ -464,6 +467,7 @@ app.post('/api/auth/google', async (req, res) => {
       await supabase.from('profiles').upsert([newProfile]);
     } catch {}
 
+    activeSessionProfileId = id;
     return res.status(201).json(newProfile);
   } else {
     // Login flow
@@ -512,14 +516,70 @@ app.post('/api/auth/google', async (req, res) => {
          } catch {}
        }
        if (p) foundProfile = p;
-    }
+     }
 
     if (foundProfile) {
+      activeSessionProfileId = foundProfile.id;
       return res.status(200).json(foundProfile);
     } else {
       return res.status(404).json({ error: 'Account not found. Please sign up first.' });
     }
   }
+});
+
+// Session Management Endpoints (NO LocalStorage allowed)
+app.get('/api/auth/session', async (req, res) => {
+  if (!activeSessionProfileId) {
+    return res.json({ user: null });
+  }
+
+  let profile: any = Array.from(memoryProfiles.values()).find(p => p.id === activeSessionProfileId);
+  if (!profile) {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', activeSessionProfileId)
+        .maybeSingle();
+      if (data) {
+        profile = data;
+        memoryProfiles.set(profile.username.toLowerCase(), profile);
+      }
+    } catch {}
+  }
+
+  res.json({ user: profile || null });
+});
+
+app.post('/api/auth/session', async (req, res) => {
+  const { profileId } = req.body;
+  activeSessionProfileId = profileId || null;
+  
+  if (!activeSessionProfileId) {
+    return res.json({ success: true, user: null });
+  }
+
+  let profile: any = Array.from(memoryProfiles.values()).find(p => p.id === activeSessionProfileId);
+  if (!profile) {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', activeSessionProfileId)
+        .maybeSingle();
+      if (data) {
+        profile = data;
+        memoryProfiles.set(profile.username.toLowerCase(), profile);
+      }
+    } catch {}
+  }
+
+  res.json({ success: true, user: profile || null });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  activeSessionProfileId = null;
+  res.json({ success: true });
 });
 
 // Get profile by username + 24h Anti-Fraud View Tracker

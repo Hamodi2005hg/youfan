@@ -436,8 +436,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="pt-2 mt-1 border-t border-white/10">
                   <button
                     onClick={() => {
-                      localStorage.removeItem('yostar_user');
-                      localStorage.removeItem('yofan_user');
                       onLogout();
                       setMenuOpen(false);
                     }}

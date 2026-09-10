@@ -77,9 +77,10 @@ export default function App() {
   // Load initial posts and profiles from server
   const loadData = async () => {
     try {
-      const [postsRes, profilesRes] = await Promise.all([
+      const [postsRes, profilesRes, sessionRes] = await Promise.all([
         fetch('/api/posts'),
         fetch('/api/profiles'),
+        fetch('/api/auth/session'),
       ]);
       if (postsRes.ok) {
         const postsData = await postsRes.json();
@@ -88,16 +89,13 @@ export default function App() {
       if (profilesRes.ok) {
         const profilesData = await profilesRes.json();
         setAllProfiles(profilesData);
-        if (!currentUser) {
-          const savedUser = localStorage.getItem('yostar_user') || localStorage.getItem('yofan_user');
-          if (savedUser) {
-            try {
-              const parsedUser = JSON.parse(savedUser);
-              setCurrentUser(parsedUser);
-            } catch {
-              setCurrentUser(null);
-            }
-          }
+      }
+      if (sessionRes.ok) {
+        const sessionData = await sessionRes.json();
+        if (sessionData.user) {
+          setCurrentUser(sessionData.user);
+        } else {
+          setCurrentUser(null);
         }
       }
     } catch (err) {
@@ -107,36 +105,47 @@ export default function App() {
 
   useEffect(() => {
     const initApp = async () => {
-      await loadData();
-      const targetUser = getProfileFromUrl();
-      if (targetUser) {
-        handleSelectProfile(targetUser);
-      } else {
-        const stored = localStorage.getItem('yostar_user') || localStorage.getItem('yofan_user');
-        if (stored) {
-          try {
-            const user = JSON.parse(stored);
-            if (user?.username) {
-              setCurrentUser(user);
-              handleSelectProfile(user.username, 'global_feed');
-              return;
-            }
-          } catch {}
-        }
-        
-        // Default entry: open Creators Feed directly for any visitor
-        try {
-          const profilesRes = await fetch('/api/profiles');
-          if (profilesRes.ok) {
-            const profiles = await profilesRes.json();
-            if (profiles.length > 0) {
-              handleSelectProfile(profiles[0].username, 'global_feed');
-              return;
-            }
-          }
-        } catch {}
+      try {
+        const [postsRes, profilesRes, sessionRes] = await Promise.all([
+          fetch('/api/posts'),
+          fetch('/api/profiles'),
+          fetch('/api/auth/session'),
+        ]);
 
-        handleSelectProfile('creator_hub', 'global_feed');
+        let fetchedUser: Profile | null = null;
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          fetchedUser = sessionData.user || null;
+          setCurrentUser(fetchedUser);
+        }
+
+        let fetchedProfiles: Profile[] = [];
+        if (profilesRes.ok) {
+          const profilesData = await profilesRes.json();
+          setAllProfiles(profilesData);
+          fetchedProfiles = profilesData;
+        }
+
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          setAllPosts(postsData);
+        }
+
+        const targetUser = getProfileFromUrl();
+        if (targetUser) {
+          handleSelectProfile(targetUser);
+        } else if (fetchedUser?.username) {
+          handleSelectProfile(fetchedUser.username, 'global_feed');
+        } else {
+          // Default entry: open Creators Feed directly for any visitor
+          if (fetchedProfiles.length > 0) {
+            handleSelectProfile(fetchedProfiles[0].username, 'global_feed');
+          } else {
+            handleSelectProfile('creator_hub', 'global_feed');
+          }
+        }
+      } catch (err) {
+        console.error('Error in initApp:', err);
       }
     };
     initApp();
@@ -215,14 +224,38 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
     setCurrentUser(null);
-    localStorage.removeItem('yostar_user');
-    localStorage.removeItem('yofan_user');
     setActiveView('home');
     setSelectedUsername(null);
     setCurrentProfile(null);
     window.history.pushState(null, '', '/');
+  };
+
+  const handleSelectSessionUser = async (profileId: string | null) => {
+    try {
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+        if (data.user) {
+          handleSelectProfile(data.user.username, 'global_feed');
+        } else {
+          setActiveView('home');
+          setSelectedUsername(null);
+          setCurrentProfile(null);
+        }
+      }
+    } catch (e) {
+      console.error('Error selecting session user:', e);
+    }
   };
 
   const handleStartEarning = () => {
@@ -249,7 +282,6 @@ export default function App() {
         setCurrentProfile(data.profile);
         if (currentUser?.username === currentProfile.username) {
           setCurrentUser(data.profile);
-          localStorage.setItem('yostar_user', JSON.stringify(data.profile));
         }
         return true;
       }
@@ -290,6 +322,8 @@ export default function App() {
       
       <Header
         currentUser={currentUser}
+        allProfiles={allProfiles}
+        onSelectSessionUser={handleSelectSessionUser}
         onOpenAuth={(mode) => setAuthModal({ open: true, mode })}
         onSelectProfile={handleSelectProfile}
         onGoHome={handleGoHome}
@@ -413,7 +447,6 @@ export default function App() {
           onClose={() => setAuthModal({ open: false, mode: 'signup' })}
           onSuccess={(profile) => {
             setCurrentUser(profile);
-            localStorage.setItem('yostar_user', JSON.stringify(profile));
             document.cookie = `yostar_session=${profile.username}; path=/; max-age=31536000`;
             handleSelectProfile(profile.username, 'global_feed');
             loadData();
