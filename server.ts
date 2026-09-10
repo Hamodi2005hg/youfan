@@ -846,114 +846,60 @@ app.post('/api/auth/google', async (req, res) => {
 
   const cleanEmail = email.toLowerCase().trim();
 
-  // Enforce One Email = One Account Rule on Signup / Login
+  // Enforce One Email = One Account Rule on Signup / Login by querying Supabase directly (Source of Truth)
   let emailExists = false;
   let existingProfileByEmail: any = null;
 
-  const emailPrefix = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  try {
+    // 1. Direct query in Supabase by 'email' column
+    const { data: directEmailData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', cleanEmail);
 
-  // 1. Search in memoryProfiles for existing profile
-  for (const p of memoryProfiles.values()) {
-    let matches = false;
-    if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) {
-      matches = true;
-    } else if (p && p.username && p.username.toLowerCase() === emailPrefix) {
-      matches = true;
-    } else if (p && p.social_links) {
-      let links = p.social_links;
-      if (typeof links === 'string') {
-        try { links = JSON.parse(links); } catch {}
-      }
-      if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
-        matches = true;
-      }
-    }
-    if (matches) {
+    if (directEmailData && directEmailData.length > 0) {
       emailExists = true;
-      existingProfileByEmail = p;
-      break;
-    }
-  }
-
-  // 2. Search in Supabase by direct 'email' column
-  if (!emailExists) {
-    try {
-      const { data: directEmailData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', cleanEmail);
-      if (directEmailData && directEmailData.length > 0) {
-        emailExists = true;
-        existingProfileByEmail = directEmailData[0];
-        memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-      }
-    } catch (err) {
-      console.error('Error querying email column in Supabase:', err);
-    }
-  }
-
-  // 3. Search in Supabase by username = emailPrefix (e.g. hamodi20052)
-  if (!emailExists && emailPrefix) {
-    try {
-      const { data: prefixData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', emailPrefix);
-      if (prefixData && prefixData.length > 0) {
-        emailExists = true;
-        existingProfileByEmail = prefixData[0];
-        memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-      }
-    } catch (err) {
-      console.error('Error querying username prefix in Supabase:', err);
-    }
-  }
-
-  // 4. Search in Supabase for existing email using social_links JSONB contains
-  if (!emailExists) {
-    try {
+      existingProfileByEmail = directEmailData[0];
+      memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+    } else {
+      // 2. Query in Supabase using social_links JSONB contains
       const { data: matchedData, error } = await supabase
         .from('profiles')
         .select('*')
         .contains('social_links', { email: cleanEmail });
-      
+
       if (!error && matchedData && matchedData.length > 0) {
         emailExists = true;
         existingProfileByEmail = matchedData[0];
         memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-      }
-    } catch (err) {
-      console.error('Error querying social_links JSONB directly:', err);
-    }
-  }
-
-  // 5. Fallback search in Supabase using direct scan on all profiles
-  if (!emailExists) {
-    try {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data && data.length > 0) {
-        const match = data.find((p: any) => {
-          if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) return true;
-          if (p && p.username && p.username.toLowerCase() === emailPrefix) return true;
-          let emailInSocial = false;
-          if (p && p.social_links) {
-            let links = p.social_links;
-            if (typeof links === 'string') {
-              try { links = JSON.parse(links); } catch {}
+      } else {
+        // 3. Fallback: fetch all profiles from Supabase to check exact email or social_links.email
+        const { data: allProfilesData } = await supabase.from('profiles').select('*');
+        if (allProfilesData && allProfilesData.length > 0) {
+          const match = allProfilesData.find((p: any) => {
+            if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) return true;
+            let emailInSocial = false;
+            if (p && p.social_links) {
+              let links = p.social_links;
+              if (typeof links === 'string') {
+                try { links = JSON.parse(links); } catch {}
+              }
+              if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
+                emailInSocial = true;
+              }
             }
-            if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
-              emailInSocial = true;
-            }
+            return emailInSocial;
+          });
+          if (match) {
+            emailExists = true;
+            existingProfileByEmail = match;
+            memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
           }
-          return emailInSocial;
-        });
-        if (match) {
-          emailExists = true;
-          existingProfileByEmail = match;
-          memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
         }
       }
-    } catch {}
+    }
+  } catch (err) {
+    console.error('Error querying Supabase for email existence:', err);
   }
 
   if (isSignup) {
