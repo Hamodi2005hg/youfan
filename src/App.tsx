@@ -16,6 +16,7 @@ import { AuthModal } from './components/AuthModal';
 import { AdsTxtModal } from './components/AdsTxtModal';
 import { SupabaseModal } from './components/SupabaseModal';
 import { AdminPanel } from './components/AdminPanel';
+import { LegalModal, LegalTab } from './components/LegalModal';
 
 export default function App() {
   const [activeView, setActiveView] = useState<'home' | 'profile' | 'feed' | 'admin'>('home');
@@ -39,6 +40,10 @@ export default function App() {
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [adsTxtOpen, setAdsTxtOpen] = useState(false);
   const [supabaseModalOpen, setSupabaseModalOpen] = useState(false);
+  const [legalModal, setLegalModal] = useState<{ open: boolean; tab: LegalTab }>({
+    open: false,
+    tab: 'content-policy',
+  });
 
   // Extract custom username from URL path/query/hash
   const getProfileFromUrl = () => {
@@ -326,6 +331,7 @@ export default function App() {
         onSelectProfile={handleSelectProfile}
         onGoHome={handleGoHome}
         onGoFeed={() => { setSelectedUsername(null); setActiveView('feed'); }}
+        onOpenLegal={(tab) => setLegalModal({ open: true, tab })}
         onLogout={handleLogout}
         activeView={activeView}
         activeSection={activeSection}
@@ -405,6 +411,7 @@ export default function App() {
 
       {/* Global Footer */}
       <Footer
+        onOpenLegal={(tab) => setLegalModal({ open: true, tab })}
         onOpenAdsTxt={() => setAdsTxtOpen(true)}
         onOpenSupabaseModal={() => setSupabaseModalOpen(true)}
       />
@@ -453,6 +460,14 @@ export default function App() {
 
       {/* Supabase Schema & Setup Modal */}
       {supabaseModalOpen && <SupabaseModal onClose={() => setSupabaseModalOpen(false)} />}
+
+      {/* Legal, Content Policy, Terms & Privacy Modal */}
+      {legalModal.open && (
+        <LegalModal
+          initialTab={legalModal.tab}
+          onClose={() => setLegalModal({ open: false, tab: 'content-policy' })}
+        />
+      )}
     </div>
   );
 }

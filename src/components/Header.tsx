@@ -8,6 +8,7 @@ interface HeaderProps {
   onSelectProfile: (username: string, section?: string) => void;
   onGoHome: () => void;
   onGoFeed: () => void;
+  onOpenLegal?: (tab: 'content-policy' | 'terms' | 'privacy' | 'monetization') => void;
   onLogout: () => void;
   activeView?: 'home' | 'profile';
   activeSection?: string;
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectProfile,
   onGoHome,
   onGoFeed,
+  onOpenLegal,
   onLogout,
 }) => {
   return (
@@ -46,6 +48,15 @@ export const Header: React.FC<HeaderProps> = ({
         >
           Feed
         </button>
+
+        {onOpenLegal && (
+          <button 
+            onClick={() => onOpenLegal('content-policy')}
+            className="text-gray-500 hover:text-black font-bold text-sm cursor-pointer border-none bg-transparent hidden sm:inline-block"
+          >
+            Policy & Terms
+          </button>
+        )}
       </div>
 
 

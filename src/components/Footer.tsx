@@ -1,13 +1,19 @@
 import React from 'react';
+import { ShieldCheck, FileText, Lock, DollarSign, Database, FileSpreadsheet } from 'lucide-react';
 
 interface FooterProps {
+  onOpenLegal: (tab: 'content-policy' | 'terms' | 'privacy' | 'monetization') => void;
   onOpenAdsTxt: () => void;
   onOpenSupabaseModal: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = () => {
+export const Footer: React.FC<FooterProps> = ({
+  onOpenLegal,
+  onOpenAdsTxt,
+  onOpenSupabaseModal,
+}) => {
   return (
-    <footer className="w-full bg-black text-white pt-16 pb-20 px-5 md:px-10 mt-auto">
+    <footer className="w-full bg-black text-white pt-16 pb-20 px-5 md:px-10 mt-auto border-t border-white/10">
       <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         {/* Logo & Copyright */}
         <div>
@@ -15,38 +21,51 @@ export const Footer: React.FC<FooterProps> = () => {
             <span className="font-extrabold text-3xl tracking-tighter text-white">
               yo<span className="text-[#FFFB93]">.</span>star
             </span>
-            <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-full">
+            <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 text-white px-2.5 py-1 rounded-full">
               Creator Hub & Network
             </span>
           </div>
-          <p className="text-xs text-gray-400">YoStar Network © 2026. All rights reserved.</p>
+          <p className="text-xs text-gray-400">
+            YoStar Network LTD © 2026. All rights reserved. Programmatic Google AdSense 70/30 Split.
+          </p>
         </div>
 
         {/* Links Navigation */}
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer"
+            onClick={() => onOpenLegal('monetization')}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
           >
-            Partner Earning Program
+            <DollarSign className="w-3.5 h-3.5 text-[#FFD60A]" />
+            Partner Program
           </button>
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer"
+            onClick={() => onOpenLegal('content-policy')}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
           >
-            Creator Guidelines
+            <ShieldCheck className="w-3.5 h-3.5 text-[#FF2D55]" />
+            Content Policy
           </button>
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer"
+            onClick={() => onOpenLegal('terms')}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
           >
+            <FileText className="w-3.5 h-3.5 text-[#30D158]" />
             Terms of Service
           </button>
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer"
+            onClick={() => onOpenLegal('privacy')}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer border-none"
           >
+            <Lock className="w-3.5 h-3.5 text-[#007AFF]" />
             Privacy Policy
+          </button>
+          <button
+            onClick={onOpenAdsTxt}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#FFFB93]/20 hover:bg-[#FFFB93]/30 text-xs font-semibold text-[#FFFB93] transition cursor-pointer border-none"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            ads.txt
           </button>
         </div>
       </div>
