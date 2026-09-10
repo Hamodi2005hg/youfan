@@ -3,6 +3,13 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { createServer as createViteServer } from 'vite';
+import { 
+  cleanIp, 
+  initializeVpnBlocker, 
+  isIpBlacklisted, 
+  isVpnOrProxy, 
+  blacklistIp 
+} from './vpnBlocker';
 
 dotenv.config();
 
@@ -215,6 +222,100 @@ const viewLogs: ViewLog[] = [];
 
 // Global session state for the active profile
 let activeSessionProfileId: string | null = null;
+
+// --- Security Middleware to Block & Ban VPN/Proxy/Tor and Blacklisted IPs ---
+app.use(async (req, res, next) => {
+  const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+  const clientIp = cleanIp(rawIp.split(',')[0]);
+
+  // Exclude local development and local healthchecks
+  if (clientIp === '127.0.0.1' || clientIp === 'localhost' || clientIp === '::1') {
+    return next();
+  }
+
+  const isApiRequest = req.path.startsWith('/api/');
+  const isDocRequest = req.path === '/' || req.path.endsWith('.html');
+  
+  if (!isApiRequest && !isDocRequest) {
+    return next();
+  }
+
+  // 1. Check if IP is permanently blacklisted in database/memory
+  if (isIpBlacklisted(clientIp)) {
+    return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+      '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
+      '<p style="color:#aaa; margin-top:10px; font-size:18px;">تم تسجيل عنوان الآيبي الخاص بك ومطابقته بقائمة الحظر الدائم لتجاوز الحماية.</p>' +
+      '</div>');
+  }
+
+  // 2. If user is logged in, check if their profile is already banned
+  let currentProfile: any = null;
+  if (activeSessionProfileId) {
+    currentProfile = memoryProfiles.get(activeSessionProfileId.replace('prof_', ''));
+    if (!currentProfile) {
+      currentProfile = Array.from(memoryProfiles.values()).find(p => p.id === activeSessionProfileId);
+    }
+    if (!currentProfile) {
+      try {
+        const { data } = await supabase.from('profiles').select('*').eq('id', activeSessionProfileId).maybeSingle();
+        if (data) {
+          currentProfile = data;
+          memoryProfiles.set(data.username.toLowerCase(), data);
+        }
+      } catch {}
+    }
+
+    if (currentProfile && currentProfile.is_banned) {
+      return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+        '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
+        '<p style="color:#aaa; margin-top:10px; font-size:18px;">حسابك الشخصي محظور بشكل دائم لمخالفة القوانين وتلاعبك بالأنظمة.</p>' +
+        '</div>');
+    }
+  }
+
+  // 3. Dynamic VPN/Proxy/Tor Detection
+  const vpnDetected = isVpnOrProxy(clientIp);
+
+  if (vpnDetected) {
+    console.log(`[Security Threat Blocked] VPN/Proxy detected from client IP: ${clientIp}`);
+
+    // Scenario A: User is logged in -> Permanent ban of profile and IP!
+    if (activeSessionProfileId && currentProfile) {
+      currentProfile.is_banned = true;
+      try {
+        await supabase.from('profiles').update({ is_banned: true }).eq('id', activeSessionProfileId);
+      } catch (err) {
+        console.error('Failed to ban profile in DB:', err);
+      }
+
+      await blacklistIp(supabase, clientIp, `VPN/Proxy usage detected on account @${currentProfile.username}`);
+
+      return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+        '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
+        '<p style="color:#aaa; margin-top:10px; font-size:18px;">لقد قمنا بحظر حسابك الشخصي وعنوان الآيبي الخاص بك نهائياً لمخالفتك شروط الاستخدام وفتح VPN.</p>' +
+        '</div>');
+    }
+
+    // Scenario B: User is not logged in -> Block viewing posts, feed, or profile queries, prompting them to disable VPN
+    const isFeedOrPostOrAuth = req.path.startsWith('/api/posts') || 
+                               req.path.startsWith('/api/feed') || 
+                               req.path.startsWith('/api/auth');
+    
+    if (isFeedOrPostOrAuth || isDocRequest) {
+      return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; border: 2px solid #FF2D55; margin: 20px; border-radius: 16px;">' +
+        '<h1 style="color:#FF2D55; font-size:32px; font-weight:900; margin-bottom:15px;">⚠️ عذراً، لا يمكنك تصفح المنشورات والمنصة باستخدام VPN</h1>' +
+        '<p style="color:#e0e0e0; font-size:18px; max-width:600px; line-height:1.6; margin: 0 auto;">' +
+        'يرجى إيقاف تشغيل برنامج الـ VPN أو البروكسي (Proxy) الخاص بك لإعادة تمكين الوصول وتصفح منشورات YoStar والتبويبات بكامل الميزات.' +
+        '</p>' +
+        '<div style="margin-top:25px; padding:10px 20px; background:#111; border-radius:30px; font-size:14px; color:#888; border: 1px solid #222; display:inline-block;">' +
+        `عنوان آيبي الاتصال الحالي: ${clientIp}` +
+        '</div>' +
+        '</div>');
+    }
+  }
+
+  next();
+});
 
 // Helper: check and record 24h IP view
 function recordIpView(profileId: string, clientIp: string): boolean {
@@ -1842,6 +1943,9 @@ app.get('/api/stats', (req, res) => {
 // 4. Start Server with Vite Middleware
 // =========================================================================
 async function startServer() {
+  // Initialize the VPN/Proxy blocker with Supabase syncing at boot
+  await initializeVpnBlocker(supabase);
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

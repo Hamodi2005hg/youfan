@@ -183,3 +183,23 @@ CREATE POLICY "Anyone can update votes" ON public.post_votes FOR UPDATE USING (t
 DROP POLICY IF EXISTS "Anyone can delete votes" ON public.post_votes;
 CREATE POLICY "Anyone can delete votes" ON public.post_votes FOR DELETE USING (true);
 
+
+-- 10. Security updates for VPN/Proxy ban system
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS public.blacklisted_ips (
+  ip TEXT PRIMARY KEY,
+  reason TEXT DEFAULT 'VPN/Proxy Detected',
+  blocked_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS and create policies for blacklisted_ips
+ALTER TABLE public.blacklisted_ips ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public blacklisted ips are viewable by everyone" ON public.blacklisted_ips;
+CREATE POLICY "Public blacklisted ips are viewable by everyone" ON public.blacklisted_ips FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can insert blacklisted ips" ON public.blacklisted_ips;
+CREATE POLICY "Anyone can insert blacklisted ips" ON public.blacklisted_ips FOR INSERT WITH CHECK (true);
+
+
