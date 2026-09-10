@@ -742,37 +742,37 @@ function savePlatformSettings(settings: any) {
   }
 }
 
-// Map country code to beautiful Arabic name
+// Map country code to English name
 function getCountryName(code: string): string {
   const countries: Record<string, string> = {
-    'EG': 'مصر',
-    'SA': 'السعودية',
-    'AE': 'الإمارات',
-    'JO': 'الأردن',
-    'MA': 'المغرب',
-    'DZ': 'الجزائر',
-    'TN': 'تونس',
-    'LY': 'ليبيا',
-    'SD': 'السودان',
-    'IQ': 'العراق',
-    'SY': 'سوريا',
-    'LB': 'لبنان',
-    'PS': 'فلسطين',
-    'YE': 'اليمن',
-    'OM': 'عمان',
-    'QA': 'قطر',
-    'KW': 'الكويت',
-    'BH': 'البحرين',
-    'US': 'الولايات المتحدة',
-    'GB': 'المملكة المتحدة',
-    'CA': 'كندا',
-    'FR': 'فرنسا',
-    'DE': 'ألمانيا',
-    'TR': 'تركيا',
-    'IN': 'الهند',
-    'PK': 'باكستان',
+    'EG': 'Egypt',
+    'SA': 'Saudi Arabia',
+    'AE': 'United Arab Emirates',
+    'JO': 'Jordan',
+    'MA': 'Morocco',
+    'DZ': 'Algeria',
+    'TN': 'Tunisia',
+    'LY': 'Libya',
+    'SD': 'Sudan',
+    'IQ': 'Iraq',
+    'SY': 'Syria',
+    'LB': 'Lebanon',
+    'PS': 'Palestine',
+    'YE': 'Yemen',
+    'OM': 'Oman',
+    'QA': 'Qatar',
+    'KW': 'Kuwait',
+    'BH': 'Bahrain',
+    'US': 'United States',
+    'GB': 'United Kingdom',
+    'CA': 'Canada',
+    'FR': 'France',
+    'DE': 'Germany',
+    'TR': 'Turkey',
+    'IN': 'India',
+    'PK': 'Pakistan',
   };
-  return countries[code.toUpperCase()] || code || 'مصر';
+  return countries[code.toUpperCase()] || code || 'United States';
 }
 
 app.get('/api/platform-settings', (req, res) => {
@@ -787,7 +787,7 @@ app.post('/api/admin/login', (req, res) => {
   if (email === adminEmail && password === adminPassword) {
     return res.json({ success: true, token: 'admin-super-secret-token' });
   }
-  return res.status(401).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+  return res.status(401).json({ error: 'Invalid admin email or password' });
 });
 
 app.get('/api/admin/users', async (req, res) => {
@@ -800,7 +800,7 @@ app.get('/api/admin/users', async (req, res) => {
     if (error) throw error;
 
     const enhanced = (profiles || []).map((p: any) => {
-      let country = 'مصر';
+      let country = 'United States';
       if (p.social_links) {
         let linksObj = p.social_links;
         if (typeof linksObj === 'string') {
@@ -902,14 +902,18 @@ app.post('/api/auth/google', async (req, res) => {
 
   const cleanEmail = email.toLowerCase().trim();
 
-  // Enforce One Email = One Account Rule on Signup
+  // Enforce One Email = One Account Rule on Signup / Login
   let emailExists = false;
   let existingProfileByEmail: any = null;
 
-  // 1. Search in memoryProfiles for existing email (checking both email column and social_links)
+  const emailPrefix = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+  // 1. Search in memoryProfiles for existing profile
   for (const p of memoryProfiles.values()) {
     let matches = false;
     if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) {
+      matches = true;
+    } else if (p && p.username && p.username.toLowerCase() === emailPrefix) {
       matches = true;
     } else if (p && p.social_links) {
       let links = p.social_links;
@@ -927,7 +931,41 @@ app.post('/api/auth/google', async (req, res) => {
     }
   }
 
-  // 2. Search in Supabase for existing email using social_links JSONB contains
+  // 2. Search in Supabase by direct 'email' column
+  if (!emailExists) {
+    try {
+      const { data: directEmailData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', cleanEmail);
+      if (directEmailData && directEmailData.length > 0) {
+        emailExists = true;
+        existingProfileByEmail = directEmailData[0];
+        memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+      }
+    } catch (err) {
+      console.error('Error querying email column in Supabase:', err);
+    }
+  }
+
+  // 3. Search in Supabase by username = emailPrefix (e.g. hamodi20052)
+  if (!emailExists && emailPrefix) {
+    try {
+      const { data: prefixData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', emailPrefix);
+      if (prefixData && prefixData.length > 0) {
+        emailExists = true;
+        existingProfileByEmail = prefixData[0];
+        memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+      }
+    } catch (err) {
+      console.error('Error querying username prefix in Supabase:', err);
+    }
+  }
+
+  // 4. Search in Supabase for existing email using social_links JSONB contains
   if (!emailExists) {
     try {
       const { data: matchedData, error } = await supabase
@@ -945,12 +983,14 @@ app.post('/api/auth/google', async (req, res) => {
     }
   }
 
-  // 3. Fallback search in Supabase using direct scan on all profiles
+  // 5. Fallback search in Supabase using direct scan on all profiles
   if (!emailExists) {
     try {
       const { data } = await supabase.from('profiles').select('*');
       if (data && data.length > 0) {
         const match = data.find((p: any) => {
+          if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) return true;
+          if (p && p.username && p.username.toLowerCase() === emailPrefix) return true;
           let emailInSocial = false;
           if (p && p.social_links) {
             let links = p.social_links;
@@ -966,16 +1006,7 @@ app.post('/api/auth/google', async (req, res) => {
         if (match) {
           emailExists = true;
           existingProfileByEmail = match;
-          
-          // Self-healing: Ensure social_links holds the Google email
-          if (!existingProfileByEmail.social_links) {
-            existingProfileByEmail.social_links = {};
-          } else if (typeof existingProfileByEmail.social_links === 'string') {
-            try { existingProfileByEmail.social_links = JSON.parse(existingProfileByEmail.social_links); } catch { existingProfileByEmail.social_links = {}; }
-          }
-          existingProfileByEmail.social_links.email = cleanEmail;
           memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
-          await updateProfileFailSafe(existingProfileByEmail.id, { social_links: existingProfileByEmail.social_links });
         }
       }
     } catch {}

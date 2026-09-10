@@ -99,17 +99,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl mb-4">{error}</div>}
 
-        {/* Content Moderation & Verification Policy Warning */}
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-2xl leading-relaxed">
-          <p className="font-bold flex items-center gap-1 mb-0.5">
-            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>تنبيه أمان النظام (Security Policy)</span>
-          </p>
-          <p className="text-[11px] text-amber-800">
-            يتم التحقق من جميع الصور والروابط والمحتوى تلقائياً قبل رفعها من قبل النظام. سيتم رفض وحظر أي صور أو روابط مخالفة للأحكام والسياسات فوراً.
-          </p>
-        </div>
-
         {mode === 'signup' ? (
           <form onSubmit={(e) => { e.preventDefault(); if(username.trim()) setGooglePickerOpen(true); else setError('Username required'); }} className="space-y-4">
             <div>

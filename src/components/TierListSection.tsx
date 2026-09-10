@@ -13,26 +13,26 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
         <div className="p-8 sm:p-12 lg:p-16 bg-white flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h4 className="text-2xl sm:text-3xl font-bold text-black">المستوى الأساسي</h4>
+              <h4 className="text-2xl sm:text-3xl font-bold text-black">Basic Creator Tier</h4>
             </div>
-            <p className="text-base font-semibold text-gray-500 mb-8">مجاني لجميع المستخدمين</p>
+            <p className="text-base font-semibold text-gray-500 mb-8">Free for all users</p>
 
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>إنشاء منشورات وقصص مصورة</span>
+                <span>Publish posts and visual publications</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>إحصائيات أساسية للمشاهدات والتصويت</span>
+                <span>Basic view & upvote analytics</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>صفحة روابط التواصل الاجتماعي</span>
+                <span>Custom social media link profile</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>التصويت والمشاركة في مجتمع المبدعين</span>
+                <span>Community voting & interaction</span>
               </li>
             </ul>
           </div>
@@ -42,7 +42,7 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
             onClick={onCreateProfile}
             className="w-full sm:w-auto self-start px-8 py-4 bg-black hover:bg-gray-800 text-white font-bold text-base rounded-2xl transition cursor-pointer"
           >
-            إنشاء حساب مبدع
+            Create Creator Account
           </button>
         </div>
 
@@ -51,37 +51,37 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
-                <h4 className="text-2xl sm:text-3xl font-bold text-black">المبدع الموثق (Top Creator)</h4>
+                <h4 className="text-2xl sm:text-3xl font-bold text-black">Top Creator Tier</h4>
                 <ShieldCheck className="w-6 h-6 text-black" />
               </div>
               <span className="text-xs uppercase tracking-wider font-bold bg-black text-white px-3 py-1 rounded-full">
-                أولوية الظهور
+                Priority Feed
               </span>
             </div>
             <p className="text-base font-semibold text-gray-800 mb-8">
-              شارة توثيق وأولوية تصدر التغذية الأكثر انتشاراً
+              Verified badge and priority ranking in trending creator feeds
             </p>
 
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>شارة المبدع الموثق على ملفك الشخصي</span>
+                <span>Verified Creator badge on your public profile</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>أولوية ظهور المنشورات عند زيادة عدد التصويتات</span>
+                <span>Priority post placement upon organic upvoting</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>ربط موثق لجميع حسابات التواصل الاجتماعي</span>
+                <span>Verified link integration for all social channels</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>إحصائيات تفاعلية دقيقة في الوقت الفعلي</span>
+                <span>Real-time audience engagement stats</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-black text-black bg-white/50 p-2.5 rounded-xl">
                 <Zap className="w-5 h-5 text-black fill-black shrink-0" />
-                <span>فرصة التواجد في قمة المنشورات الرائجة</span>
+                <span>Top spot eligibility in global discovery trends</span>
               </li>
             </ul>
           </div>
@@ -91,7 +91,7 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
             onClick={onCreateProfile}
             className="w-full sm:w-auto self-start px-8 py-4 bg-black hover:bg-gray-800 text-white font-bold text-base rounded-2xl transition cursor-pointer shadow-sm"
           >
-            الانضمام لمبدعي YoStar
+            Join YoStar Creators
           </button>
         </div>
       </div>

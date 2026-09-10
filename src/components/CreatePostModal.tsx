@@ -253,14 +253,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 />
               </div>
               <p className="mt-2 text-[11px] text-amber-900 font-medium leading-relaxed bg-amber-50 p-3 rounded-2xl border border-amber-200">
-                ⚠️ <strong>تنبيه النظام:</strong> يتم التحقق من جميع الصور والروابط والمحتوى تلقائياً قبل رفعها من قبل النظام. سيتم رفض وحظر أي صور أو روابط مخالفة للأحكام والسياسات فوراً.
+                ⚠️ <strong>System Safety Warning:</strong> All images, links, and content are automatically verified prior to publishing. Policy-violating content will be rejected immediately.
               </p>
             </div>
           )}
 
           {/* System Automated Verification Warning Banner */}
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-semibold leading-relaxed">
-            🛡️ يتم فحص المحتوى تلقائياً للتحقق من الأمان والشروط قبل النشر.
+            🛡️ Content is automatically scanned for compliance and security prior to publishing.
           </div>
 
           <div className="pt-4 border-t border-gray-100">

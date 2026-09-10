@@ -249,7 +249,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
               })()}
             </p>
             <p className="text-sm font-bold text-white mb-2">
-              رابط موثق وآمن للزيارة
+              Verified & Secure Link
             </p>
             <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
               Link safety and compliance verified using Google Web Risk API

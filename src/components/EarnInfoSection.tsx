@@ -18,30 +18,30 @@ export const EarnInfoSection: React.FC = () => {
   const steps = [
     {
       icon: Sparkles,
-      title: 'نشر محتوى مميز وأصيل',
-      desc: 'أنشئ منشورات وقصصاً مصورة جميلة وأضف مجموعات روابط التواصل الاجتماعي ليتمكن متابعوك من التفاعل المباشر مع محتواك.',
+      title: 'Publish Unique Content',
+      desc: 'Create beautiful visual posts and showcase all your social media links so your audience can interact directly with your content.',
     },
     {
       icon: ThumbsUp,
-      title: 'تصويت الجمهور يرفع مكانتك',
-      desc: 'كلما زاد عدد التصويتات والإعجابات على منشوراتك، زادت فرصة ظهورك في القمة ضمن تغذية المبدعين الأكثر انتشاراً.',
+      title: 'Community Voting Boosts Rank',
+      desc: 'The more upvotes and engagement your publications receive, the higher your posts rank in the global creator discovery feed.',
     },
     {
       icon: Share2,
-      title: 'مشاركة رابط ملفك الشخصي',
-      desc: 'شارك رابط ملفك الشخصي الموحد عبر جميع منصات التواصل الاجتماعي (انستغرام، واتساب، تلغرام، يوتيوب، تيك توك) لبناء جمهورك.',
+      title: 'Share Your Unified Profile',
+      desc: 'Share your single bio link across Instagram, WhatsApp, Telegram, YouTube, TikTok, and build your organic global audience.',
     },
     {
       icon: LinkIcon,
-      title: 'ربط موثق للتواصل الاجتماعي',
-      desc: 'أضف جميع حسابات التواصل الاجتماعي والروابط المخصصة مع نظام تحقق تلقائي لمنع التلاعب وتوفير بيئة آمنة وموثوقة.',
+      title: 'Verified Social Integration',
+      desc: 'Connect all your social accounts and custom links with automated verification ensuring security and authenticity.',
     },
   ];
 
   return (
     <section className="w-full max-w-[1280px] mx-auto px-5 md:px-10 mb-24 md:mb-36">
       <h3 className="text-3xl md:text-5xl font-extrabold text-black tracking-tight mb-12 md:mb-16">
-        نمُّ متسلقاً القمة بالتصويت والتفاعل مع YoStar
+        Climb to the Top through Community Votes with YoStar
       </h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">

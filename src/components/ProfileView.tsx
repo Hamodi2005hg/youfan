@@ -218,17 +218,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     // Strict validation for each social link platform
     const platformNames: Record<string, string> = {
-      whatsapp: 'الواتساب (WhatsApp)',
-      telegram: 'التلجرام (Telegram)',
-      instagram: 'انستغرام (Instagram)',
-      twitter: 'تويتر/إكس (Twitter/X)',
-      youtube: 'يوتيوب (YouTube)',
-      tiktok: 'تيك توك (TikTok)',
-      facebook: 'فيسبوك (Facebook)',
-      linkedin: 'لينكد إن (LinkedIn)',
-      snapchat: 'سناب شات (Snapchat)',
-      discord: 'ديسكورد (Discord)',
-      custom: 'الرابط المخصص (Custom Link)',
+      whatsapp: 'WhatsApp',
+      telegram: 'Telegram',
+      instagram: 'Instagram',
+      twitter: 'Twitter/X',
+      youtube: 'YouTube',
+      tiktok: 'TikTok',
+      facebook: 'Facebook',
+      linkedin: 'LinkedIn',
+      snapchat: 'Snapchat',
+      discord: 'Discord',
+      custom: 'Custom Link',
     };
 
     for (const [key, val] of Object.entries(socialLinks)) {
@@ -236,7 +236,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       if (val && typeof val === 'string' && val.trim()) {
         if (!validateSocialLink(key, val)) {
           const name = platformNames[key] || key;
-          const errMsg = `⚠️ خطأ في التحقق: رابط ${name} غير مطابق للمنصة المحددة! يرجى إدخال رابط صريح وخاص بالمنصة لمنع التلاعب.`;
+          const errMsg = `⚠️ Validation Error: Link for ${name} does not match the required platform format! Please enter a valid URL.`;
           setSocialError(errMsg);
           alert(errMsg);
           return;
@@ -258,12 +258,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         }),
       });
       if (res.ok) {
-        alert('تم تحديث الملف الشخصي بنجاح!');
+        alert('Profile updated successfully!');
         setEditProfileOpen(false);
         window.location.reload();
       }
     } catch {
-      alert('خطأ أثناء حفظ الملف الشخصي');
+      alert('Error updating profile');
     } finally {
       setSavingProfile(false);
     }
@@ -274,7 +274,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (!newLinkTitle || !newLinkUrl) return;
 
     if (!newLinkUrl.startsWith('http://') && !newLinkUrl.startsWith('https://')) {
-      alert('⚠️ يجب أن يبدأ الرابط المخصص بـ http:// أو https:// لضمان صحة الرابط وأمان المستخدمين.');
+      alert('⚠️ Custom link must start with http:// or https://');
       return;
     }
 
@@ -801,7 +801,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               {/* System Automated Verification Warning Banner */}
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-300 leading-relaxed font-medium">
-                ⚠️ <strong>تنبيه أمان النظام:</strong> يتم التحقق تلقائياً من جميع الصور والروابط قبل رفعها من قبل النظام. سيتم رفض وحظر أي صور أو روابط مخالفة للأحكام والسياسات فوراً.
+                ⚠️ <strong>Safety Warning:</strong> All images, links, and content are automatically verified prior to publishing. Policy-violating content will be rejected immediately.
               </div>
 
               {socialError && (
@@ -814,9 +814,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="space-y-3 pt-3 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-300">
-                    حسابات التواصل الاجتماعي (مع التحقق المباشر)
+                    Social Media Accounts (Verified Links)
                   </label>
-                  <span className="text-[10px] text-gray-400">يجب ان يطابق الرابط المنصة المحددة</span>
+                  <span className="text-[10px] text-gray-400">Must match selected platform domain</span>
                 </div>
 
                 {/* WhatsApp */}
@@ -826,7 +826,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط الواتساب (مثال: wa.me/213xxxxxxxxx)"
+                    placeholder="WhatsApp Link (e.g. wa.me/1234567890)"
                     value={socialLinks.whatsapp || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, whatsapp: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-emerald-400 focus:outline-none"
@@ -840,7 +840,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط التلجرام (مثال: t.me/username)"
+                    placeholder="Telegram Link (e.g. t.me/username)"
                     value={socialLinks.telegram || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, telegram: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-sky-400 focus:outline-none"
@@ -854,7 +854,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط الانستغرام (مثال: instagram.com/username)"
+                    placeholder="Instagram Link (e.g. instagram.com/username)"
                     value={socialLinks.instagram || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-pink-400 focus:outline-none"
@@ -868,7 +868,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط تويتر/إكس (مثال: x.com/username)"
+                    placeholder="Twitter/X Link (e.g. x.com/username)"
                     value={socialLinks.twitter || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-blue-400 focus:outline-none"
@@ -882,7 +882,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط قناة اليوتيوب (مثال: youtube.com/@channel)"
+                    placeholder="YouTube Channel Link (e.g. youtube.com/@channel)"
                     value={socialLinks.youtube || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-rose-400 focus:outline-none"
@@ -896,7 +896,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط التيك توك (مثال: tiktok.com/@username)"
+                    placeholder="TikTok Profile Link (e.g. tiktok.com/@username)"
                     value={socialLinks.tiktok || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-purple-400 focus:outline-none"
@@ -910,7 +910,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط الفيسبوك (مثال: facebook.com/profile)"
+                    placeholder="Facebook Profile Link (e.g. facebook.com/profile)"
                     value={socialLinks.facebook || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-blue-500 focus:outline-none"
@@ -924,7 +924,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                   <input
                     type="text"
-                    placeholder="رابط موقع مخصص (مثال: https://mywebsite.com)"
+                    placeholder="Custom Web Link (e.g. https://mywebsite.com)"
                     value={socialLinks.custom || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, custom: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-amber-400 focus:outline-none"
@@ -937,7 +937,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 disabled={savingProfile}
                 className="w-full py-3.5 bg-white text-black font-extrabold rounded-2xl text-sm hover:bg-gray-200 cursor-pointer mt-4 transition shadow-lg"
               >
-                {savingProfile ? 'جاري الحفظ والتحقق...' : 'حفظ التغييرات'}
+                {savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
               </button>
             </form>
           </div>
@@ -954,8 +954,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <Settings className="w-5 h-5 text-black" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">إعدادات الحساب ونسب التفاعل</h3>
-                  <p className="text-xs text-gray-400">إحصائيات الملف وتصنيفات الظهور</p>
+                  <h3 className="text-xl font-bold text-white">Account & Engagement Analytics</h3>
+                  <p className="text-xs text-gray-400">Profile stats and ranking placement</p>
                 </div>
               </div>
               <button
@@ -969,23 +969,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {/* Performance Stats Block */}
             <div className="bg-black/50 rounded-2xl p-5 mb-6 border border-white/10 space-y-4">
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-2">
-                إحصائيات تفاعل المحتوى والظهور
+                Content Engagement Overview
               </h4>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[11px] text-gray-400 block">إجمالي التصويتات</span>
+                  <span className="text-[11px] text-gray-400 block">Total Upvotes</span>
                   <span className="text-lg font-black text-[#FFFB93]">{totalUpvotes}</span>
                 </div>
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[11px] text-gray-400 block">إجمالي المشاهدات</span>
+                  <span className="text-[11px] text-gray-400 block">Total Views</span>
                   <span className="text-lg font-black text-emerald-400">{postViewsCount.toLocaleString()}</span>
                 </div>
               </div>
 
               <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-300 font-semibold">
                 <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>حسابك متوافق مع أحكام وسياسات الأمان والنظام الآلي.</span>
+                <span>Your account complies with safety policies and automated verification.</span>
               </div>
             </div>
           </div>
