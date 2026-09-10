@@ -162,6 +162,7 @@ function checkTextSafety(text: string): void {
 interface Profile {
   id: string;
   username: string;
+  email?: string;
   bio: string;
   avatar_url: string;
   adsense_pub_id: string;
@@ -440,26 +441,45 @@ app.post('/api/auth/google', async (req, res) => {
   let emailExists = false;
   let existingProfileByEmail: any = null;
 
-  // 1. Search in memoryProfiles for existing email
+  // 1. Search in memoryProfiles for existing email (checking both email column and social_links)
   for (const p of memoryProfiles.values()) {
-    let emailInSocial = false;
-    if (p && p.social_links) {
+    let matches = false;
+    if (p && p.email && p.email.toLowerCase().trim() === cleanEmail) {
+      matches = true;
+    } else if (p && p.social_links) {
       let links = p.social_links;
       if (typeof links === 'string') {
         try { links = JSON.parse(links); } catch {}
       }
       if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
-        emailInSocial = true;
+        matches = true;
       }
     }
-    if (emailInSocial) {
+    if (matches) {
       emailExists = true;
       existingProfileByEmail = p;
       break;
     }
   }
 
-  // 2. Search in Supabase for existing email
+  // 2. Search in Supabase for existing email (direct column query first)
+  if (!emailExists) {
+    try {
+      const { data: emailData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+      
+      if (emailData) {
+        emailExists = true;
+        existingProfileByEmail = emailData;
+        memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+      }
+    } catch {}
+  }
+
+  // 3. Fallback search in Supabase using social_links mapping
   if (!emailExists) {
     try {
       const { data } = await supabase.from('profiles').select('*');
@@ -480,7 +500,13 @@ app.post('/api/auth/google', async (req, res) => {
         if (match) {
           emailExists = true;
           existingProfileByEmail = match;
+          
+          // Self-healing: Update the profile with the new direct 'email' field in Supabase & memory
+          existingProfileByEmail.email = cleanEmail;
           memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+          try {
+            await supabase.from('profiles').update({ email: cleanEmail }).eq('id', existingProfileByEmail.id);
+          } catch {}
         }
       }
     } catch {}
@@ -508,6 +534,7 @@ app.post('/api/auth/google', async (req, res) => {
     const newProfile = {
       id,
       username: cleanUsername,
+      email: cleanEmail,
       bio: 'Verified Creator authenticated via Google',
       avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`,
       adsense_pub_id: '',
@@ -546,9 +573,13 @@ app.post('/api/auth/google', async (req, res) => {
            try { foundProfile.social_links = JSON.parse(foundProfile.social_links); } catch { foundProfile.social_links = {}; }
          }
          foundProfile.social_links.email = cleanEmail;
+         foundProfile.email = cleanEmail;
          memoryProfiles.set(foundProfile.username.toLowerCase(), foundProfile);
          try {
-           await supabase.from('profiles').update({ social_links: foundProfile.social_links }).eq('id', foundProfile.id);
+           await supabase.from('profiles').update({ 
+             social_links: foundProfile.social_links,
+             email: cleanEmail
+           }).eq('id', foundProfile.id);
          } catch {}
        }
      }

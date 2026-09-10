@@ -1,6 +1,7 @@
 export interface Profile {
   id: string;
   username: string;
+  email?: string;
   bio: string;
   avatar_url: string;
   adsense_pub_id: string;
