@@ -322,8 +322,6 @@ export default function App() {
       
       <Header
         currentUser={currentUser}
-        allProfiles={allProfiles}
-        onSelectSessionUser={handleSelectSessionUser}
         onOpenAuth={(mode) => setAuthModal({ open: true, mode })}
         onSelectProfile={handleSelectProfile}
         onGoHome={handleGoHome}

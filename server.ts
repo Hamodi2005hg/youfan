@@ -436,7 +436,61 @@ app.post('/api/auth/google', async (req, res) => {
 
   const cleanEmail = email.toLowerCase().trim();
 
+  // Enforce One Email = One Account Rule on Signup
+  let emailExists = false;
+  let existingProfileByEmail: any = null;
+
+  // 1. Search in memoryProfiles for existing email
+  for (const p of memoryProfiles.values()) {
+    let emailInSocial = false;
+    if (p && p.social_links) {
+      let links = p.social_links;
+      if (typeof links === 'string') {
+        try { links = JSON.parse(links); } catch {}
+      }
+      if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
+        emailInSocial = true;
+      }
+    }
+    if (emailInSocial) {
+      emailExists = true;
+      existingProfileByEmail = p;
+      break;
+    }
+  }
+
+  // 2. Search in Supabase for existing email
+  if (!emailExists) {
+    try {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data && data.length > 0) {
+        const match = data.find((p: any) => {
+          let emailInSocial = false;
+          if (p && p.social_links) {
+            let links = p.social_links;
+            if (typeof links === 'string') {
+              try { links = JSON.parse(links); } catch {}
+            }
+            if (links && links.email && links.email.toLowerCase().trim() === cleanEmail) {
+              emailInSocial = true;
+            }
+          }
+          return emailInSocial;
+        });
+        if (match) {
+          emailExists = true;
+          existingProfileByEmail = match;
+          memoryProfiles.set(existingProfileByEmail.username.toLowerCase(), existingProfileByEmail);
+        }
+      }
+    } catch {}
+  }
+
   if (isSignup) {
+    if (emailExists) {
+      return res.status(400).json({ error: 'An account is already associated with this Google email. Please log in instead.' });
+    }
+
     if (!username) return res.status(400).json({ error: 'Username is required for signup' });
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
     const id = `prof_${cleanUsername}`;
@@ -471,41 +525,9 @@ app.post('/api/auth/google', async (req, res) => {
     return res.status(201).json(newProfile);
   } else {
     // Login flow
-    let foundProfile: any = null;
-    for (const [uname, p] of memoryProfiles.entries()) {
-      if (p.social_links && p.social_links.email === cleanEmail) {
-        foundProfile = p;
-        break;
-      }
-    }
+    let foundProfile: any = existingProfileByEmail;
 
-    if (!foundProfile) {
-      try {
-        const { data } = await supabase.from('profiles').select('*');
-        if (data) {
-          const match = data.find((p: any) => {
-            let emailInSocial = false;
-            if (p.social_links) {
-              if (typeof p.social_links === 'string') {
-                try {
-                  const parsed = JSON.parse(p.social_links);
-                  emailInSocial = parsed.email === cleanEmail;
-                } catch {}
-              } else {
-                emailInSocial = p.social_links.email === cleanEmail;
-              }
-            }
-            return emailInSocial;
-          });
-          if (match) {
-            foundProfile = match;
-            memoryProfiles.set(foundProfile.username, foundProfile);
-          }
-        }
-      } catch {}
-    }
-
-    // Fallback: search by prefix
+    // Fallback: if no profile has this email explicitly, search by prefix (Self-Healing)
     if (!foundProfile) {
        const prefix = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
        let p = memoryProfiles.get(prefix);
@@ -515,7 +537,20 @@ app.post('/api/auth/google', async (req, res) => {
            if (data) p = data;
          } catch {}
        }
-       if (p) foundProfile = p;
+       if (p) {
+         foundProfile = p;
+         // Self-healing: associate this Google email with the profile for future direct logins
+         if (!foundProfile.social_links) {
+           foundProfile.social_links = {};
+         } else if (typeof foundProfile.social_links === 'string') {
+           try { foundProfile.social_links = JSON.parse(foundProfile.social_links); } catch { foundProfile.social_links = {}; }
+         }
+         foundProfile.social_links.email = cleanEmail;
+         memoryProfiles.set(foundProfile.username.toLowerCase(), foundProfile);
+         try {
+           await supabase.from('profiles').update({ social_links: foundProfile.social_links }).eq('id', foundProfile.id);
+         } catch {}
+       }
      }
 
     if (foundProfile) {

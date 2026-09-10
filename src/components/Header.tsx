@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Profile } from '../types';
-import { LogOut, UserCheck } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: Profile | null;
-  allProfiles: Profile[];
-  onSelectSessionUser: (profileId: string | null) => void;
   onOpenAuth: (mode: 'login' | 'signup') => void;
   onSelectProfile: (username: string, section?: string) => void;
   onGoHome: () => void;
@@ -17,51 +15,12 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
-  allProfiles = [],
-  onSelectSessionUser,
   onOpenAuth,
   onSelectProfile,
   onGoHome,
   onGoFeed,
   onLogout,
 }) => {
-  // Local state to track the selected account in the dropdown
-  const [selectedDropdownId, setSelectedDropdownId] = useState<string>('');
-
-  // Synchronize dropdown selection with currentUser changes
-  useEffect(() => {
-    if (currentUser) {
-      setSelectedDropdownId(currentUser.id);
-    } else {
-      // Default to first profile if available, otherwise empty
-      if (allProfiles.length > 0) {
-        setSelectedDropdownId(allProfiles[0].id);
-      } else {
-        setSelectedDropdownId('');
-      }
-    }
-  }, [currentUser, allProfiles]);
-
-  const handleDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const profileId = e.target.value;
-    setSelectedDropdownId(profileId);
-    // Automatically switch active session to selected user
-    onSelectSessionUser(profileId || null);
-  };
-
-  const handleLoginClick = () => {
-    if (selectedDropdownId) {
-      // Log in immediately with the dropdown-selected account
-      onSelectSessionUser(selectedDropdownId);
-    } else {
-      onOpenAuth('login');
-    }
-  };
-
-  const handleSignupClick = () => {
-    onOpenAuth('signup');
-  };
-
   return (
     <header className="w-full max-w-[1280px] mx-auto px-5 md:px-10 py-5 flex items-center justify-between z-40 relative">
       
@@ -92,23 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Header Actions */}
       <div className="flex items-center gap-4">
-        {/* Account Selection Dropdown */}
-        <div className="flex items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full px-3.5 py-1.5 transition">
-          <UserCheck className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
-          <select
-            value={selectedDropdownId}
-            onChange={handleDropdownChange}
-            className="bg-transparent border-none text-xs font-bold text-gray-700 focus:outline-none cursor-pointer max-w-[130px] sm:max-w-[200px]"
-          >
-            <option value="">No Active Account (Guest)</option>
-            {allProfiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                @{p.username} ({p.category || 'Creator'})
-              </option>
-            ))}
-          </select>
-        </div>
-
         {currentUser ? (
           <div className="flex items-center gap-2.5">
             <button
@@ -135,13 +77,13 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <div className="flex items-center gap-2">
             <button
-              onClick={handleLoginClick}
+              onClick={() => onOpenAuth('login')}
               className="px-4 py-2 font-bold text-sm text-black hover:bg-black/5 rounded-full transition cursor-pointer border-none"
             >
               Log In
             </button>
             <button
-              onClick={handleSignupClick}
+              onClick={() => onOpenAuth('signup')}
               className="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-bold text-sm rounded-full transition cursor-pointer shadow-md border-none"
             >
               Sign Up
