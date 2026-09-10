@@ -353,22 +353,16 @@ export default function App() {
               onSelectProfile={handleSelectProfile}
             />
 
-            {/* 3. Platform Stats */}
-            <StatsSection />
-
-            {/* 4. Earn with Ease Details & Yellow Floating Badges */}
+            {/* 3. Earn with Ease Details */}
             <EarnInfoSection />
 
-            {/* 5. Trending Profiles Carousel */}
+            {/* 4. Trending Profiles Carousel */}
             <TrendingProfiles
               profiles={allProfiles}
               onSelectProfile={handleSelectProfile}
             />
 
-            {/* 6. Potential Earnings Calculator */}
-            <CalculatorSection onStartEarning={handleStartEarning} />
-
-            {/* 7. Basic vs Verified Tiers with Milestones */}
+            {/* 5. Basic vs Verified Tiers with Milestones */}
             <TierListSection
               onCreateProfile={() => setAuthModal({ open: true, mode: 'signup' })}
             />

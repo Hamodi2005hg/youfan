@@ -71,36 +71,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Creators social proof badge */}
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-3 overflow-hidden">
-              <img
-                className="inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover"
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80"
-                alt="Creator avatar"
-              />
-              <img
-                className="inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover"
-                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80"
-                alt="Creator avatar"
-              />
-              <img
-                className="inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover"
-                src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80"
-                alt="Creator avatar"
-              />
-              <img
-                className="inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover"
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"
-                alt="Creator avatar"
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Publishers</p>
-              <p className="text-2xl font-black text-black leading-none">+{publishersCount.toLocaleString()}</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -27,8 +27,8 @@ export const EarnInfoSection: React.FC = () => {
     },
     {
       icon: DollarSign,
-      title: 'Earn from Google AdSense (70/30)',
-      desc: 'Generate passive revenue from automated AdSense impressions displayed alongside your articles and photo stories.',
+      title: 'Monetize content & audience',
+      desc: 'Earn directly from your published articles and photo stories through reader support, sponsorships, and content monetization.',
     },
     {
       icon: LinkIcon,
@@ -84,16 +84,16 @@ export const EarnInfoSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Floating Yellow Badge 1: Earnings */}
-            <div className="absolute top-10 -right-4 sm:-right-8 bg-[#FFFB93] rounded-2xl px-6 py-4 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:4s]">
-              <p className="text-2xl sm:text-3xl font-black text-black leading-none mb-1">$94,120</p>
-              <p className="text-xs sm:text-sm font-semibold text-gray-800">Monthly revenue</p>
+            {/* Floating Yellow Badge 1: Active Hub */}
+            <div className="absolute top-10 -right-4 sm:-right-8 bg-[#FFFB93] rounded-2xl px-5 py-3 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:4s]">
+              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Creator Network</p>
+              <p className="text-xs font-semibold text-gray-800">Verified Hub</p>
             </div>
 
-            {/* Floating Yellow Badge 2: Followers */}
-            <div className="absolute bottom-10 -left-4 sm:-left-8 bg-[#FFFB93] rounded-2xl px-6 py-4 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:5s]">
-              <p className="text-2xl sm:text-3xl font-black text-black leading-none mb-1">8,400</p>
-              <p className="text-xs sm:text-sm font-semibold text-gray-800">new subscribers</p>
+            {/* Floating Yellow Badge 2: Monetized */}
+            <div className="absolute bottom-10 -left-4 sm:-left-8 bg-[#FFFB93] rounded-2xl px-5 py-3 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:5s]">
+              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Monetized</p>
+              <p className="text-xs font-semibold text-gray-800">100% Owned</p>
             </div>
           </div>
         </div>

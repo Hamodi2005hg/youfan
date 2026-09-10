@@ -26,14 +26,8 @@ export const TrendingPosts: React.FC<TrendingPostsProps> = ({
           </h3>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#FFFB93] flex items-center justify-center text-black shadow-xs">
-            <Flame className="w-6 h-6 text-black fill-black" />
-          </div>
-          <div className="text-left">
-            <p className="text-xl md:text-2xl font-black text-black leading-none">+32,833</p>
-            <p className="text-xs font-semibold text-gray-500">Last week posts</p>
-          </div>
+        <div className="w-10 h-10 rounded-2xl bg-[#FFFB93] flex items-center justify-center text-black shadow-xs">
+          <Flame className="w-5 h-5 text-black fill-black" />
         </div>
       </div>
 

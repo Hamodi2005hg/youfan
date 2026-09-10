@@ -89,7 +89,7 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-black text-black bg-white/50 p-2.5 rounded-xl">
                 <Zap className="w-5 h-5 text-black fill-black shrink-0" />
-                <span>Earn from Google AdSense (70% revenue sharing)</span>
+                <span>Earn from publisher monetization program</span>
               </li>
             </ul>
           </div>
