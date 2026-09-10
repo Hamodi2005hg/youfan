@@ -80,6 +80,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onSelectProfile,
   onRequireAuth,
 }) => {
+  const isOwner = !!(currentUser && (currentUser.id === profile.id || currentUser.username.toLowerCase() === profile.username.toLowerCase()));
+
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -149,7 +151,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         const [linksRes, followersRes, notifsRes] = await Promise.all([
           profile?.id ? fetch(`/api/links/${profile.id}`) : Promise.resolve(new Response('[]')),
           profile?.id ? fetch(`/api/followers/${profile.id}`) : Promise.resolve(new Response('[]')),
-          (currentUser?.id || profile?.id) ? fetch(`/api/notifications/${currentUser?.id || profile?.id}`) : Promise.resolve(new Response('[]')),
+          isOwner ? fetch(`/api/notifications/${profile.id}`) : Promise.resolve(new Response('[]')),
         ]);
         
         if (linksRes.ok) {
@@ -176,7 +178,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     // Real-time polling every 4 seconds to ensure notifications show up instantly without page refresh
     const interval = setInterval(loadUserData, 4000);
     return () => clearInterval(interval);
-  }, [profile.id, currentUser]);
+  }, [profile.id, currentUser, isOwner]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,7 +297,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#000000] text-white flex flex-col items-center">
-      {/* Exact YoFan Authentic Header */}
+      {/* Exact YoStar Authentic Header */}
       <header className="w-full max-w-[796px] h-[60px] md:h-[85px] px-4 md:px-10 flex items-center justify-between bg-black sticky top-0 z-50">
         <div
           onClick={onBackHome}
@@ -303,151 +305,155 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           title="Back to Feed"
         >
           <span className="font-extrabold text-2xl tracking-tighter text-white">
-            yo<span className="text-[#FF2D55]">.</span>fan
+            yo<span className="text-[#FF2D55]">.</span>star
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Create Post / Add Button */}
-          <button
-            onClick={onOpenCreatePost}
-            className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-md cursor-pointer"
-            title="Create New Post"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-
-          {/* Burger Menu Button matching YoFan screenshot */}
-          <div className="relative">
+          {/* Create Post / Add Button - Only visible if current user is owner */}
+          {isOwner && (
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition cursor-pointer"
-              title="Menu"
+              onClick={onOpenCreatePost}
+              className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-md cursor-pointer"
+              title="Create New Post"
             >
-              {menuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+              <Plus className="w-5 h-5" />
             </button>
+          )}
 
-            {/* Sliding Drawer Menu matching YoFan screenshot */}
-            {menuOpen && (
-              <div className="absolute right-0 top-12 w-72 bg-black/95 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-1.5 animate-in fade-in zoom-in-95">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.username}
-                      className="w-9 h-9 rounded-full object-cover border border-white"
-                    />
-                    <div>
-                      <p className="font-bold text-sm text-white">@{profile.username}</p>
-                      <p className="text-[11px] text-gray-400">{category}</p>
+          {/* Burger Menu Button matching YoStar screenshot - Only visible if current user is owner */}
+          {isOwner && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition cursor-pointer"
+                title="Menu"
+              >
+                {menuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+              </button>
+
+              {/* Sliding Drawer Menu matching YoStar screenshot */}
+              {menuOpen && (
+                <div className="absolute right-0 top-12 w-72 bg-black/95 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-1.5 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.username}
+                        className="w-9 h-9 rounded-full object-cover border border-white"
+                      />
+                      <div>
+                        <p className="font-bold text-sm text-white">@{profile.username}</p>
+                        <p className="text-[11px] text-gray-400">{category}</p>
+                      </div>
                     </div>
+                    <button onClick={() => setMenuOpen(false)} className="text-gray-400 hover:text-white p-1 bg-transparent border-none cursor-pointer">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button onClick={() => setMenuOpen(false)} className="text-gray-400 hover:text-white p-1">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
 
-                <button
-                  onClick={() => {
-                    setActiveTab('global_feed');
-                    setMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left ${
-                    activeTab === 'global_feed' ? 'bg-white/10' : ''
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 text-gray-300" />
-                  <span>Feed</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('feed');
-                    setMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left ${
-                    activeTab === 'feed' ? 'bg-white/10' : ''
-                  }`}
-                >
-                  <Home className="w-4 h-4 text-gray-300" />
-                  <span>My Profile</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setNotificationsOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white relative w-full text-left"
-                >
-                  <Bell className="w-4 h-4 text-gray-300" />
-                  <span>Notifications</span>
-                  {notifications.filter((n) => !n.is_read).length > 0 && (
-                    <span className="ml-auto w-2 h-2 rounded-full bg-blue-500" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setEditProfileOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left"
-                >
-                  <User className="w-4 h-4 text-gray-300" />
-                  <span>Edit profile</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('links');
-                    setMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left ${
-                    activeTab === 'links' ? 'bg-white/10' : ''
-                  }`}
-                >
-                  <LinkIcon className="w-4 h-4 text-gray-300" />
-                  <span>Links</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSubscribersOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left"
-                >
-                  <Users className="w-4 h-4 text-gray-300" />
-                  <span>Subscribers</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSettingsModalOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left"
-                >
-                  <Settings className="w-4 h-4 text-gray-300" />
-                  <span>Settings & AdSense</span>
-                </button>
-
-                <div className="pt-2 mt-1 border-t border-white/10">
                   <button
                     onClick={() => {
-                      onLogout();
+                      setActiveTab('global_feed');
                       setMenuOpen(false);
                     }}
-                    className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-rose-500/20 text-rose-400 text-sm font-medium transition cursor-pointer w-full text-left border-none"
+                    className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none ${
+                      activeTab === 'global_feed' ? 'bg-white/10' : ''
+                    }`}
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span>Log Out</span>
+                    <Sparkles className="w-4 h-4 text-gray-300" />
+                    <span>Feed</span>
                   </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('feed');
+                      setMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none ${
+                      activeTab === 'feed' ? 'bg-white/10' : ''
+                    }`}
+                  >
+                    <Home className="w-4 h-4 text-gray-300" />
+                    <span>My Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setNotificationsOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white relative w-full text-left bg-transparent border-none"
+                  >
+                    <Bell className="w-4 h-4 text-gray-300" />
+                    <span>Notifications</span>
+                    {notifications.filter((n) => !n.is_read).length > 0 && (
+                      <span className="ml-auto w-2 h-2 rounded-full bg-blue-500" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditProfileOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none"
+                  >
+                    <User className="w-4 h-4 text-gray-300" />
+                    <span>Edit profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('links');
+                      setMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none ${
+                      activeTab === 'links' ? 'bg-white/10' : ''
+                    }`}
+                  >
+                    <LinkIcon className="w-4 h-4 text-gray-300" />
+                    <span>Links</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSubscribersOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none"
+                  >
+                    <Users className="w-4 h-4 text-gray-300" />
+                    <span>Subscribers</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSettingsModalOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none"
+                  >
+                    <Settings className="w-4 h-4 text-gray-300" />
+                    <span>Settings & AdSense</span>
+                  </button>
+
+                  <div className="pt-2 mt-1 border-t border-white/10">
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-rose-500/20 text-rose-400 text-sm font-medium transition cursor-pointer w-full text-left border-none bg-transparent"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -487,13 +493,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         ) : (
           <>
             {/* Profile Head Banner & Avatar */}
-            <div className="relative w-full h-[320px] sm:h-[450px] overflow-hidden flex flex-col items-center justify-end z-10">
-              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black z-10" />
-              <img
-                src="https://yo.fan/assets/images/default-profile-background.png"
-                alt="Profile Background"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+            <div className="relative w-full h-[320px] sm:h-[450px] overflow-hidden flex flex-col items-center justify-end z-10 bg-black">
+              {/* Abstract Glowing Background matching YoStar theme */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black z-10" />
+              <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-neutral-800 via-neutral-950 to-black" />
+              
+              {/* Elegant Modern Abstract Shapes instead of YoFan's old logo */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+                <span className="text-[90px] sm:text-[160px] font-black tracking-tighter text-white/[0.03] select-none uppercase">
+                  yo.star
+                </span>
+              </div>
 
               {/* Centered Avatar */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
@@ -518,9 +528,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 {profile.bio && <p className="text-xs text-gray-300 max-w-md text-center px-4">{profile.bio}</p>}
                 
                 {/* Follow / Subscribe button if viewing someone else */}
-                {currentUser && currentUser.id !== profile.id && (
+                {!isOwner && (
                   <button
-                    onClick={handleToggleFollow}
+                    onClick={() => {
+                      if (!currentUser) {
+                        onRequireAuth();
+                      } else {
+                        handleToggleFollow();
+                      }
+                    }}
                     className={`mt-2 px-6 py-2 rounded-full font-bold text-xs transition cursor-pointer ${
                       isFollowing ? 'bg-white/20 text-white' : 'bg-white text-black hover:bg-gray-200'
                     }`}
@@ -581,12 +597,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 posts.length === 0 ? (
                   <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10">
                     <p className="text-[#B7B7B7] mb-4">No publications yet for @{profile.username}</p>
-                    <button
-                      onClick={onOpenCreatePost}
-                      className="px-6 py-3 bg-white text-black font-bold text-sm rounded-full cursor-pointer hover:bg-gray-200 transition"
-                    >
-                      Create First Post
-                    </button>
+                    {isOwner && (
+                      <button
+                        onClick={onOpenCreatePost}
+                        className="px-6 py-3 bg-white text-black font-bold text-sm rounded-full cursor-pointer hover:bg-gray-200 transition"
+                      >
+                        Create First Post
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -604,7 +622,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 )
               ) : (
                 <div className="space-y-4">
-                  {currentUser && currentUser.id === profile.id && (
+                  {isOwner && (
                     <form onSubmit={handleAddLink} className="bg-[#131313] p-4 rounded-2xl border border-white/10 space-y-3">
                       <h4 className="font-bold text-sm text-white">Add New Bio Link</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -657,7 +675,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             <span>{link.title}</span>
                             <ExternalLink className="w-3.5 h-3.5 text-gray-500 ml-auto" />
                           </a>
-                          {currentUser && currentUser.id === profile.id && (
+                          {isOwner && (
                             <button
                               onClick={() => handleDeleteLink(link.id)}
                               className="ml-3 p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer"
