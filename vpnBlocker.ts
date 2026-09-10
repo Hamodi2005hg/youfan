@@ -9,129 +9,21 @@ export function cleanIp(ip: string): string {
   return cleaned;
 }
 
-// Convert IPv4 string to 32-bit unsigned integer
-export function ipToInt(ip: string): number {
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(isNaN)) return 0;
-  return ((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
-}
-
-interface CIDR {
-  base: number;
-  mask: number;
-  original: string;
-}
-
-// Parse CIDR string into integer base and mask
-export function parseCidr(cidr: string): CIDR | null {
-  const parts = cidr.trim().split('/');
-  if (parts.length !== 2) return null;
-  const base = ipToInt(parts[0]);
-  const bits = parseInt(parts[1], 10);
-  if (isNaN(bits) || bits < 0 || bits > 32) return null;
-  
-  const mask = bits === 0 ? 0 : (~((1 << (32 - bits)) - 1)) >>> 0;
-  return { base, mask, original: cidr };
-}
-
-// Check if IP integer is in a parsed CIDR range
-export function isIpInCidr(ipInt: number, cidr: CIDR): boolean {
-  return (ipInt & cidr.mask) === (cidr.base & cidr.mask);
-}
-
-// 1. In-Memory Stores
-const loadedCidrs: CIDR[] = [];
-const torExitNodes = new Set<string>();
+// In-Memory Stores
 const blacklistedIpsMemory = new Set<string>();
 
-// Pre-baked major datacenter CIDR blocks as high-certainty offline fallback
-const preBakedCidrs = [
-  // Hetzner
-  '116.203.0.0/16', '95.216.0.0/15', '78.46.0.0/15', '88.198.0.0/15', '176.9.0.0/16', '136.243.0.0/16',
-  // DigitalOcean
-  '104.248.0.0/16', '138.197.0.0/15', '159.203.0.0/16', '159.65.0.0/16', '165.227.0.0/16', '167.99.0.0/16', '206.189.0.0/16', '46.101.0.0/16', '134.209.0.0/16', '178.62.0.0/16',
-  // Linode / Akamai
-  '172.104.0.0/15', '139.162.0.0/16', '45.79.0.0/16', '45.33.0.0/16', '192.155.0.0/16',
-  // OVH / Contabo / Scaleway
-  '5.9.0.0/16', '144.76.0.0/16', '148.251.0.0/16', '195.201.0.0/16', '162.55.0.0/16', '213.239.128.0/17', '185.244.192.0/22', '178.32.0.0/15', '51.254.0.0/15', '149.202.0.0/16', '51.89.0.0/16', '178.254.0.0/16',
-  // Google Cloud (GCP)
-  '34.80.0.0/12', '35.184.0.0/13', '35.200.0.0/13', '104.196.0.0/14', '104.154.0.0/15', '130.211.0.0/16',
-  // Microsoft Azure
-  '13.64.0.0/11', '23.96.0.0/13', '40.76.0.0/14', '40.112.0.0/13', '52.136.0.0/13', '52.145.0.0/16', '52.146.0.0/15',
-  // Render.com Hosting ranges / datacenter blocks
-  '216.24.57.0/24', '159.203.0.0/16', '143.198.0.0/16', '146.190.0.0/16', '164.92.64.0/18'
-];
-
-// Load pre-baked CIDRs first
-for (const cidrStr of preBakedCidrs) {
-  const parsed = parseCidr(cidrStr);
-  if (parsed) loadedCidrs.push(parsed);
+// Behavioral Monitoring Cache Stores
+export interface UserBehavior {
+  lastIp: string;
+  lastCountry: string;
+  lastActiveTime: number;
 }
 
-// 2. Fetcher functions to keep ranges fresh
-async function fetchTorExitNodes() {
-  try {
-    const res = await fetch('https://check.torproject.org/torbulkexitlist');
-    if (res.ok) {
-      const text = await res.text();
-      const ips = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-      for (const ip of ips) {
-        torExitNodes.add(ip);
-      }
-      console.log(`[VPN Blocker] Loaded ${torExitNodes.size} Tor exit nodes successfully.`);
-    }
-  } catch (err) {
-    console.error('[VPN Blocker] Error fetching Tor exit nodes, falling back to pre-cached ranges.', err);
-  }
-}
+export const profileBehaviorStore = new Map<string, UserBehavior>();
+export const ipBehaviorStore = new Map<string, { requestTimestamps: number[] }>();
 
-async function fetchCloudflareIps() {
-  try {
-    const res = await fetch('https://www.cloudflare.com/ips-v4');
-    if (res.ok) {
-      const text = await res.text();
-      const ranges = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-      let count = 0;
-      for (const r of ranges) {
-        const parsed = parseCidr(r);
-        if (parsed) {
-          loadedCidrs.push(parsed);
-          count++;
-        }
-      }
-      console.log(`[VPN Blocker] Loaded ${count} Cloudflare ranges dynamically.`);
-    }
-  } catch (err) {
-    console.error('[VPN Blocker] Error fetching Cloudflare IPs.', err);
-  }
-}
-
-async function fetchAwsIps() {
-  try {
-    const res = await fetch('https://ip-ranges.amazonaws.com/ip-ranges.json');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.prefixes)) {
-        let count = 0;
-        for (const prefix of data.prefixes) {
-          if (prefix.ip_prefix) {
-            const parsed = parseCidr(prefix.ip_prefix);
-            if (parsed) {
-              loadedCidrs.push(parsed);
-              count++;
-            }
-          }
-        }
-        console.log(`[VPN Blocker] Loaded ${count} AWS hosting ranges dynamically.`);
-      }
-    }
-  } catch (err) {
-    console.error('[VPN Blocker] Error fetching AWS IP ranges.', err);
-  }
-}
-
-// Sync already blacklisted IPs from Supabase into memory for instant O(1) checks
-async function syncBlacklistedIps(supabase: SupabaseClient) {
+// Sync permanently blacklisted IPs from Supabase into memory for fast O(1) checks
+export async function syncBlacklistedIps(supabase: SupabaseClient) {
   try {
     const { data, error } = await supabase.from('blacklisted_ips').select('ip');
     if (error) {
@@ -139,6 +31,7 @@ async function syncBlacklistedIps(supabase: SupabaseClient) {
       return;
     }
     if (data) {
+      blacklistedIpsMemory.clear();
       for (const row of data) {
         if (row.ip) {
           blacklistedIpsMemory.add(cleanIp(row.ip));
@@ -151,102 +44,176 @@ async function syncBlacklistedIps(supabase: SupabaseClient) {
   }
 }
 
-// Fetch massive public lists of commercial VPN/Proxy and Datacenter IP ranges to catch virtually all commercial VPN services (NordVPN, ExpressVPN, Surfshark, etc.)
-async function fetchGithubVpnLists() {
-  try {
-    console.log('[VPN Blocker] Downloading comprehensive VPN range lists from GitHub...');
-    const res = await fetch('https://raw.githubusercontent.com/X4BNet/lists_vpn/main/ipv4.txt');
-    if (res.ok) {
-      const text = await res.text();
-      const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-      let count = 0;
-      for (const line of lines) {
-        const parsed = parseCidr(line);
-        if (parsed) {
-          loadedCidrs.push(parsed);
-          count++;
-        }
-      }
-      console.log(`[VPN Blocker] Dynamically loaded ${count} VPN & Proxy ranges from X4BNet lists_vpn.`);
-    }
-  } catch (err) {
-    console.error('[VPN Blocker] Failed to fetch X4BNet VPN lists, using pre-baked fallback.', err);
-  }
-
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/ejrv/VPN-IP-Addresses/master/vpn-ipv4.txt');
-    if (res.ok) {
-      const text = await res.text();
-      const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-      let count = 0;
-      for (const line of lines) {
-        const cidrStr = line.includes('/') ? line : `${line}/32`;
-        const parsed = parseCidr(cidrStr);
-        if (parsed) {
-          loadedCidrs.push(parsed);
-          count++;
-        }
-      }
-      console.log(`[VPN Blocker] Dynamically loaded ${count} individual VPN IPs/ranges from ejrv VPN-IP-Addresses.`);
-    }
-  } catch (err) {
-    console.error('[VPN Blocker] Failed to fetch ejrv VPN-IP-Addresses, using pre-baked fallback.', err);
-  }
-}
-
-// 3. Main Init Function
+// Main Init Function Called at Server Boot
 export async function initializeVpnBlocker(supabase: SupabaseClient) {
-  console.log('[VPN Blocker] Initializing offline security engine...');
-  
-  // Sync DB blacklist
+  console.log('[VPN Blocker] Initializing IPinfo security engine...');
   await syncBlacklistedIps(supabase);
-  
-  // Asynchronously fetch dynamic external ranges to avoid blocking server boot
-  Promise.all([
-    fetchTorExitNodes(),
-    fetchCloudflareIps(),
-    fetchAwsIps(),
-    fetchGithubVpnLists()
-  ]).catch(err => {
-    console.error('[VPN Blocker] Error in asynchronous IP updates:', err);
-  });
 }
 
-// 4. Verification Checkers
+// Check if IP is blacklisted in local memory cache
 export function isIpBlacklisted(ip: string): boolean {
   const cleaned = cleanIp(ip);
   return blacklistedIpsMemory.has(cleaned);
 }
 
-export function isVpnOrProxy(ip: string): boolean {
+// IPinfo API Client Integration with Token: d5ebb545f92ee7
+export async function checkIpInfo(ip: string): Promise<{ vpn: boolean; country: string; org: string }> {
   const cleaned = cleanIp(ip);
-  
-  // Check 1: Is it a known Tor Exit Node?
-  if (torExitNodes.has(cleaned)) {
-    return true;
+
+  // Skip local development or internal IPs
+  if (cleaned === '127.0.0.1' || cleaned === 'localhost' || cleaned === '::1') {
+    return { vpn: false, country: 'US', org: 'Local Loopback' };
   }
-  
-  // Check 2: Is it within AWS/GCP/Azure/Cloudflare/Hetzner/DO CIDR ranges?
-  const ipInt = ipToInt(cleaned);
-  if (ipInt === 0) return false;
-  
-  for (const cidr of loadedCidrs) {
-    if (isIpInCidr(ipInt, cidr)) {
-      return true;
+
+  try {
+    const token = 'd5ebb545f92ee7';
+    const url = `https://ipinfo.io/${cleaned}/json?token=${token}`;
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!res.ok) {
+      console.error(`[IPinfo API] Failed to fetch IPinfo for ${cleaned}. Status: ${res.status}`);
+      return { vpn: false, country: '', org: '' };
     }
+
+    const data = await res.json();
+    console.log(`[IPinfo API] Successfully verified IP ${cleaned}:`, JSON.stringify(data));
+
+    let isVpn = false;
+
+    // 1. Check direct IPinfo privacy endpoints block
+    if (data.privacy) {
+      isVpn = !!(data.privacy.vpn || data.privacy.proxy || data.privacy.tor || data.privacy.relay || data.privacy.hosting);
+    } else {
+      // Check for anonymous or hosting flags in standard metadata
+      if (data.is_anonymous || data.is_hosting) {
+        isVpn = true;
+      }
+    }
+
+    // 2. Extra ASN & Organization validation (Fallback and hosting centers)
+    const org = (data.org || '').toLowerCase();
+    const datacenterKeywords = [
+      'amazon', 'google', 'microsoft', 'digitalocean', 'hetzner', 'ovh', 'linode', 'contabo', 
+      'leaseweb', 'datacenter', 'hosting', 'server', 'vultr', 'choopa', 'm27', 'selectel', 
+      'fastly', 'cloudflare', 'akamai', 'scrypt', 'vpn', 'proxy', 'tor-exit', 'node', 'server'
+    ];
+
+    if (!isVpn && org) {
+      for (const keyword of datacenterKeywords) {
+        if (org.includes(keyword)) {
+          isVpn = true;
+          console.log(`[IPinfo API] Flagged ${cleaned} as VPN/Proxy because org name "${org}" matches datacenter keyword.`);
+          break;
+        }
+      }
+    }
+
+    return {
+      vpn: isVpn,
+      country: data.country || '',
+      org: data.org || ''
+    };
+  } catch (err) {
+    console.error(`[IPinfo API] Error fetching IPinfo for ${cleaned}:`, err);
+    return { vpn: false, country: '', org: '' };
   }
-  
-  return false;
 }
 
-// 5. Blacklisting implementation
+// Permanently blacklist IP address in memory and Supabase database
 export async function blacklistIp(supabase: SupabaseClient, ip: string, reason: string = 'VPN/Proxy Detected') {
   const cleaned = cleanIp(ip);
   blacklistedIpsMemory.add(cleaned);
   try {
     await supabase.from('blacklisted_ips').upsert([{ ip: cleaned, reason }]);
-    console.log(`[VPN Blocker] Added IP ${cleaned} to Supabase blacklist. Reason: ${reason}`);
+    console.log(`[VPN Blocker] IP ${cleaned} added to Supabase blacklist. Reason: ${reason}`);
   } catch (err) {
     console.error(`[VPN Blocker] Failed to insert blacklisted IP ${cleaned} to Supabase:`, err);
   }
+}
+
+/**
+ * localBehaviorMonitor
+ * Fully local and free behavioral check that analyzes requests to detect anomaly triggers.
+ * Returns true if the user must be banned / blocked.
+ */
+export async function handleBehavioralCheck(
+  supabase: SupabaseClient, 
+  ip: string, 
+  profileId: string | null
+): Promise<{ isBlocked: boolean; reason: string }> {
+  const cleanedIp = cleanIp(ip);
+
+  // 1. Rapid View/Refresh behavioral doubt check
+  const now = Date.now();
+  let ipInfo = ipBehaviorStore.get(cleanedIp);
+  if (!ipInfo) {
+    ipInfo = { requestTimestamps: [] };
+    ipBehaviorStore.set(cleanedIp, ipInfo);
+  }
+
+  // Record timestamp and clean stamps older than 60 seconds
+  ipInfo.requestTimestamps.push(now);
+  ipInfo.requestTimestamps = ipInfo.requestTimestamps.filter(t => now - t < 60000);
+
+  if (ipInfo.requestTimestamps.length > 10) {
+    console.log(`[Local Monitor] Trigger doubt on IP ${cleanedIp}: Rapid requests (${ipInfo.requestTimestamps.length} views/min)`);
+    // Rapid views suspected! Query IPinfo immediately to verify if VPN/Proxy
+    const verification = await checkIpInfo(cleanedIp);
+    if (verification.vpn) {
+      await blacklistIp(supabase, cleanedIp, `Banned for rapid views on VPN: ${verification.org}`);
+      return { isBlocked: true, reason: 'Rapid view traffic using VPN' };
+    }
+  }
+
+  // 2. Sudden location / travel speed doubt check
+  if (profileId) {
+    const lastBehavior = profileBehaviorStore.get(profileId);
+    if (lastBehavior) {
+      // If IP has changed
+      if (lastBehavior.lastIp !== cleanedIp) {
+        const timeElapsed = now - lastBehavior.lastActiveTime; // in milliseconds
+        
+        // If IP changed in less than 30 minutes, it is highly suspicious (possible teleportation)
+        if (timeElapsed < 1800000) {
+          console.log(`[Local Monitor] Trigger doubt on User ${profileId}: Sudden IP changed from ${lastBehavior.lastIp} to ${cleanedIp} in ${Math.round(timeElapsed / 1000)}s`);
+          
+          // Verify the new IP location using IPinfo API
+          const verification = await checkIpInfo(cleanedIp);
+          
+          if (verification.vpn) {
+            await blacklistIp(supabase, cleanedIp, `Suspicious instant IP change on VPN/Proxy: ${verification.org}`);
+            return { isBlocked: true, reason: 'Sudden location change on VPN/Proxy' };
+          }
+
+          // If different countries in less than 30 minutes (impossible travel)
+          if (lastBehavior.lastCountry && verification.country && lastBehavior.lastCountry !== verification.country) {
+            console.log(`[Local Monitor] Ban user ${profileId} for impossible travel: ${lastBehavior.lastCountry} to ${verification.country}`);
+            await blacklistIp(supabase, cleanedIp, `Impossible travel detected from ${lastBehavior.lastCountry} to ${verification.country}`);
+            return { isBlocked: true, reason: `Impossible travel from ${lastBehavior.lastCountry} to ${verification.country}` };
+          }
+        }
+      }
+    }
+
+    // Update behavioral store for the user session
+    // If we don't have country cached, we can fetch it once or preserve previous
+    let currentCountry = lastBehavior?.lastCountry || '';
+    if (!lastBehavior || lastBehavior.lastIp !== cleanedIp) {
+      const info = await checkIpInfo(cleanedIp);
+      currentCountry = info.country;
+    }
+
+    profileBehaviorStore.set(profileId, {
+      lastIp: cleanedIp,
+      lastCountry: currentCountry,
+      lastActiveTime: now
+    });
+  }
+
+  return { isBlocked: false, reason: '' };
 }

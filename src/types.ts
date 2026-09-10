@@ -8,6 +8,7 @@ export interface Profile {
   views_count: number;
   created_at: string;
   posts_count?: number;
+  is_banned?: boolean;
   milestones?: {
     requiredPosts: number;
     currentPosts: number;

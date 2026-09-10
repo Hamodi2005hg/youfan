@@ -7,8 +7,9 @@ import {
   cleanIp, 
   initializeVpnBlocker, 
   isIpBlacklisted, 
-  isVpnOrProxy, 
-  blacklistIp 
+  checkIpInfo, 
+  blacklistIp,
+  handleBehavioralCheck
 } from './vpnBlocker';
 
 dotenv.config();
@@ -229,6 +230,7 @@ interface Profile {
   created_at: string;
   category?: string;
   social_links?: any;
+  is_banned?: boolean;
 }
 
 interface Post {
@@ -309,8 +311,8 @@ app.use(async (req, res, next) => {
   if (isIpBlacklisted(clientIp)) {
     console.log(`[Security Engine] 🛑 Blocked permanently blacklisted IP: ${clientIp}`);
     return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
-      '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
-      '<p style="color:#aaa; margin-top:10px; font-size:18px;">تم تسجيل عنوان الآيبي الخاص بك ومطابقته بقائمة الحظر الدائم لتجاوز الحماية.</p>' +
+      '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Banned IP</h1>' +
+      '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your IP address has been permanently blacklisted for system manipulation.</p>' +
       '</div>');
   }
 
@@ -334,19 +336,16 @@ app.use(async (req, res, next) => {
     if (currentProfile && currentProfile.is_banned) {
       console.log(`[Security Engine] 🛑 Blocked banned user: @${currentProfile.username} (ID: ${activeSessionProfileId})`);
       return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
-        '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
-        '<p style="color:#aaa; margin-top:10px; font-size:18px;">حسابك الشخصي محظور بشكل دائم لمخالفة القوانين وتلاعبك بالأنظمة.</p>' +
+        '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked: Permanently Banned</h1>' +
+        '<p style="color:#aaa; margin-top:10px; font-size:18px;">Your account has been permanently suspended for violating our terms of service.</p>' +
         '</div>');
     }
   }
 
-  // 3. Dynamic VPN/Proxy/Tor Detection
-  const vpnDetected = isVpnOrProxy(clientIp);
-
-  if (vpnDetected) {
-    console.log(`[Security Engine] ⚠️ VPN/Proxy/Tor detected on IP: ${clientIp}`);
-
-    // Scenario A: User is logged in -> Permanent ban of profile and IP!
+  // 3. Local Behavioral Doubt check
+  const behavior = await handleBehavioralCheck(supabase, clientIp, activeSessionProfileId);
+  if (behavior.isBlocked) {
+    console.log(`[Security Engine] 🛑 Blocking user for malicious behavior: ${behavior.reason}`);
     if (activeSessionProfileId && currentProfile) {
       currentProfile.is_banned = true;
       try {
@@ -355,32 +354,11 @@ app.use(async (req, res, next) => {
       } catch (err) {
         console.error('Failed to ban profile in DB:', err);
       }
-
-      await blacklistIp(supabase, clientIp, `VPN/Proxy usage detected on account @${currentProfile.username}`);
-
-      return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
-        '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 تم حظرك نهائياً من المنصة لتلاعبك بالأنظمة</h1>' +
-        '<p style="color:#aaa; margin-top:10px; font-size:18px;">لقد قمنا بحظر حسابك الشخصي وعنوان الآيبي الخاص بك نهائياً لمخالفتك شروط الاستخدام وفتح VPN.</p>' +
-        '</div>');
     }
-
-    // Scenario B: User is not logged in -> Block viewing posts, feed, or profile queries, prompting them to disable VPN
-    const isFeedOrPostOrAuth = req.path.startsWith('/api/posts') || 
-                               req.path.startsWith('/api/feed') || 
-                               req.path.startsWith('/api/auth');
-    
-    if (isFeedOrPostOrAuth || isDocRequest) {
-      console.log(`[Security Engine] 🛑 Blocking VPN user from access. Showing Warning Screen.`);
-      return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; border: 2px solid #FF2D55; margin: 20px; border-radius: 16px;">' +
-        '<h1 style="color:#FF2D55; font-size:32px; font-weight:900; margin-bottom:15px;">⚠️ عذراً، لا يمكنك تصفح المنشورات والمنصة باستخدام VPN</h1>' +
-        '<p style="color:#e0e0e0; font-size:18px; max-width:600px; line-height:1.6; margin: 0 auto;">' +
-        'يرجى إيقاف تشغيل برنامج الـ VPN أو البروكسي (Proxy) الخاص بك لإعادة تمكين الوصول وتصفح منشورات YoStar والتبويبات بكامل الميزات.' +
-        '</p>' +
-        '<div style="margin-top:25px; padding:10px 20px; background:#111; border-radius:30px; font-size:14px; color:#888; border: 1px solid #222; display:inline-block;">' +
-        `عنوان آيبي الاتصال الحالي: ${clientIp}` +
-        '</div>' +
-        '</div>');
-    }
+    return res.status(403).send('<div style="text-align:center; padding:50px; font-family:sans-serif; background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">' +
+      '<h1 style="color:#FF2D55; font-size:32px; font-weight:bold;">🛑 Access Blocked</h1>' +
+      `<p style="color:#aaa; margin-top:10px; font-size:18px;">Your access has been blocked: ${behavior.reason}.</p>` +
+      '</div>');
   }
 
   next();
@@ -602,6 +580,22 @@ app.get('/api/profiles', async (req, res) => {
 
 // Google Auth Endpoint
 app.post('/api/auth/google', async (req, res) => {
+  const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+  let clientIp = cleanIp(rawIp.split(',')[0]);
+  if (req.query.debug_ip) {
+    clientIp = cleanIp(req.query.debug_ip as string);
+  } else if (req.headers['x-debug-ip']) {
+    clientIp = cleanIp(req.headers['x-debug-ip'] as string);
+  }
+
+  // Mandatory VPN/Proxy check on registration and login
+  const vpnCheck = await checkIpInfo(clientIp);
+  if (vpnCheck.vpn) {
+    console.log(`[Security Engine] 🛑 Mandatory Block: VPN/Proxy detected on Google Auth from IP ${clientIp}`);
+    await blacklistIp(supabase, clientIp, `Google Auth VPN block: ${vpnCheck.org}`);
+    return res.status(403).json({ error: 'Access Denied: Registration and Login are strictly forbidden while using a VPN or Proxy.' });
+  }
+
   const { email, username, isSignup } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
@@ -1132,9 +1126,30 @@ app.get('/api/posts', async (req, res) => {
 
 // Create post
 app.post('/api/posts', async (req, res) => {
+  const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+  let clientIp = cleanIp(rawIp.split(',')[0]);
+  if (req.query.debug_ip) {
+    clientIp = cleanIp(req.query.debug_ip as string);
+  } else if (req.headers['x-debug-ip']) {
+    clientIp = cleanIp(req.headers['x-debug-ip'] as string);
+  }
+
   const { user_id, username, image_url, title, description, link_url } = req.body;
   if (!user_id || !title || (!image_url && !link_url)) {
     return res.status(400).json({ error: 'user_id, title, and either image_url or link_url are required' });
+  }
+
+  // Mandatory VPN check when creating a post
+  const vpnCheck = await checkIpInfo(clientIp);
+  if (vpnCheck.vpn) {
+    console.log(`[Security Engine] 🛑 Mandatory Block: VPN/Proxy detected on Creating Post for user ID ${user_id} from IP ${clientIp}`);
+    const profile = memoryProfiles.get(username?.toLowerCase()) || Array.from(memoryProfiles.values()).find(p => p.id === user_id);
+    if (profile) {
+      profile.is_banned = true;
+    }
+    await updateProfileFailSafe(user_id, { is_banned: true });
+    await blacklistIp(supabase, clientIp, `Creating post on VPN: ${user_id} | ${vpnCheck.org}`);
+    return res.status(403).json({ error: 'Access Denied: You have been permanently banned for attempting to publish content while using a VPN or Proxy.' });
   }
 
   try {
@@ -1591,6 +1606,14 @@ app.get('/api/ads-config/:username', async (req, res) => {
 
 // Update user AdSense Publisher ID (Enforces Milestones)
 app.post('/api/profile/update-adsense', async (req, res) => {
+  const rawIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+  let clientIp = cleanIp(rawIp.split(',')[0]);
+  if (req.query.debug_ip) {
+    clientIp = cleanIp(req.query.debug_ip as string);
+  } else if (req.headers['x-debug-ip']) {
+    clientIp = cleanIp(req.headers['x-debug-ip'] as string);
+  }
+
   const { username, adsense_pub_id } = req.body;
   if (!username) {
     return res.status(400).json({ error: 'Username is required' });
@@ -1610,6 +1633,16 @@ app.post('/api/profile/update-adsense', async (req, res) => {
 
   if (!profile) {
     return res.status(404).json({ error: 'Profile not found' });
+  }
+
+  // Mandatory VPN check when binding AdSense
+  const vpnCheck = await checkIpInfo(clientIp);
+  if (vpnCheck.vpn) {
+    console.log(`[Security Engine] 🛑 Mandatory Block: VPN/Proxy detected on Binding AdSense for user @${profile.username} from IP ${clientIp}`);
+    profile.is_banned = true;
+    await updateProfileFailSafe(profile.id, { is_banned: true });
+    await blacklistIp(supabase, clientIp, `Binding AdSense on VPN: @${profile.username} | ${vpnCheck.org}`);
+    return res.status(403).json({ error: 'Access Denied: You have been permanently banned from the platform for attempting to link AdSense using a VPN/Proxy.' });
   }
 
   // Count user posts
