@@ -13,10 +13,6 @@ import { ProfileView } from './components/ProfileView';
 import { PostDetailModal } from './components/PostDetailModal';
 import { CreatePostModal } from './components/CreatePostModal';
 import { AuthModal } from './components/AuthModal';
-<<<<<<< HEAD
-=======
-import { SupabaseModal } from './components/SupabaseModal';
->>>>>>> origin/main
 import { AdminPanel } from './components/AdminPanel';
 import { LegalModal, LegalTab } from './components/LegalModal';
 
@@ -25,10 +21,7 @@ export default function App() {
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [profilePosts, setProfilePosts] = useState<Post[]>([]);
-<<<<<<< HEAD
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
-=======
->>>>>>> origin/main
 
   // Platform Data
   const [allPosts, setAllPosts] = useState<Post[]>([]);
@@ -44,10 +37,6 @@ export default function App() {
     mode: 'signup',
   });
   const [createPostOpen, setCreatePostOpen] = useState(false);
-<<<<<<< HEAD
-=======
-  const [supabaseModalOpen, setSupabaseModalOpen] = useState(false);
->>>>>>> origin/main
   const [legalModal, setLegalModal] = useState<{ open: boolean; tab: LegalTab }>({
     open: false,
     tab: 'content-policy',
@@ -69,10 +58,7 @@ export default function App() {
   };
 
   const fetchProfileDetails = async (username: string) => {
-<<<<<<< HEAD
     setLoadingProfile(true);
-=======
->>>>>>> origin/main
     try {
       const res = await fetch(`/api/profile/${username}`);
       if (res.ok) {
@@ -85,11 +71,8 @@ export default function App() {
       }
     } catch {
       setActiveView('home');
-<<<<<<< HEAD
     } finally {
       setLoadingProfile(false);
-=======
->>>>>>> origin/main
     }
   };
 
@@ -145,10 +128,7 @@ export default function App() {
   const handleLogout = () => {
     document.cookie = 'yostar_session=; path=/; max-age=0';
     setCurrentUser(null);
-<<<<<<< HEAD
     setCurrentProfile(null);
-=======
->>>>>>> origin/main
     handleGoHome();
   };
 
@@ -159,17 +139,6 @@ export default function App() {
     }
   };
 
-<<<<<<< HEAD
-=======
-  const handleStartEarning = () => {
-    if (currentUser) {
-      handleSelectProfile(currentUser.username);
-    } else {
-      setAuthModal({ open: true, mode: 'signup' });
-    }
-  };
-
->>>>>>> origin/main
   const handlePostCreated = (newPost: Post) => {
     setAllPosts((prev) => [newPost, ...prev]);
     setProfilePosts((prev) => [newPost, ...prev]);
@@ -181,10 +150,6 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#111111] selection:bg-[#FFFB93] selection:text-black">
       {/* Main Navigation Header */}
-<<<<<<< HEAD
-=======
-      
->>>>>>> origin/main
       <Header
         currentUser={currentUser}
         onOpenAuth={(mode) => setAuthModal({ open: true, mode })}
@@ -196,53 +161,27 @@ export default function App() {
         activeView={activeView}
       />
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
       {/* Content Router */}
       <main className="flex-1 w-full">
         {activeView === 'admin' ? (
           <AdminPanel onGoHome={handleGoHome} />
         ) : activeView === 'home' ? (
           <div>
-<<<<<<< HEAD
-=======
-            {/* 1. Hero Section */}
->>>>>>> origin/main
             <HeroSection
               onGetStarted={(username) => {
                 setAuthModal({ open: true, mode: 'signup', suggested: username });
               }}
             />
-<<<<<<< HEAD
-=======
-
-            {/* 2. Trending Posts Carousel */}
->>>>>>> origin/main
             <TrendingPosts
               posts={allPosts}
               onSelectPost={(post) => setSelectedPost(post)}
               onSelectProfile={handleSelectProfile}
             />
-<<<<<<< HEAD
             <EarnInfoSection />
-=======
-
-            {/* 3. Earn with Ease Details */}
-            <EarnInfoSection />
-
-            {/* 4. Trending Profiles Carousel */}
->>>>>>> origin/main
             <TrendingProfiles
               profiles={allProfiles}
               onSelectProfile={handleSelectProfile}
             />
-<<<<<<< HEAD
-=======
-
-            {/* 5. Basic vs Verified Tiers with Milestones */}
->>>>>>> origin/main
             <TierListSection
               onCreateProfile={() => setAuthModal({ open: true, mode: 'signup' })}
             />
@@ -271,7 +210,6 @@ export default function App() {
               onVoteSuccess={handleVoteSuccess}
               onSelectProfile={handleSelectProfile}
             />
-<<<<<<< HEAD
           ) : loadingProfile ? (
             <div className="flex-1 flex flex-col items-center justify-center py-32">
               <div className="animate-spin w-10 h-10 border-4 border-gray-200 border-t-black rounded-full mb-4"></div>
@@ -287,12 +225,6 @@ export default function App() {
               >
                 Return to Home
               </button>
-=======
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-32">
-              <div className="animate-spin w-10 h-10 border-4 border-white/20 border-t-[#FF2D55] rounded-full mb-4"></div>
-              <p className="text-gray-400 font-medium">Loading profile...</p>
->>>>>>> origin/main
             </div>
           )
         )}
@@ -301,10 +233,6 @@ export default function App() {
       {/* Global Footer */}
       <Footer
         onOpenLegal={(tab) => setLegalModal({ open: true, tab })}
-<<<<<<< HEAD
-=======
-        onOpenSupabaseModal={() => setSupabaseModalOpen(true)}
->>>>>>> origin/main
       />
 
       {/* Post Detail Modal */}
@@ -339,28 +267,17 @@ export default function App() {
           onClose={() => setAuthModal({ open: false, mode: 'signup' })}
           onSuccess={(profile) => {
             setCurrentUser(profile);
-<<<<<<< HEAD
             setCurrentProfile(profile);
             document.cookie = `yostar_session=${profile.username}; path=/; max-age=31536000`;
             setSelectedUsername(profile.username);
             setActiveView('profile');
             window.history.pushState({}, '', `/${profile.username}`);
             fetchProfileDetails(profile.username);
-=======
-            document.cookie = `yostar_session=${profile.username}; path=/; max-age=31536000`;
-            handleSelectProfile(profile.username, 'global_feed');
->>>>>>> origin/main
             loadData();
           }}
         />
       )}
 
-<<<<<<< HEAD
-=======
-      {/* Supabase Schema & Setup Modal */}
-      {supabaseModalOpen && <SupabaseModal onClose={() => setSupabaseModalOpen(false)} />}
-
->>>>>>> origin/main
       {/* Legal, Content Policy, Terms & Privacy Modal */}
       {legalModal.open && (
         <LegalModal
