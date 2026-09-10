@@ -7,7 +7,6 @@ import { StatsSection } from './components/StatsSection';
 import { EarnInfoSection } from './components/EarnInfoSection';
 import { TrendingProfiles } from './components/TrendingProfiles';
 import { GlobalFeedView } from './components/GlobalFeedView';
-import { CalculatorSection } from './components/CalculatorSection';
 import { TierListSection } from './components/TierListSection';
 import { Footer } from './components/Footer';
 import { ProfileView } from './components/ProfileView';

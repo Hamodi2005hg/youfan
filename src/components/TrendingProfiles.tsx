@@ -24,7 +24,7 @@ export const TrendingProfiles: React.FC<TrendingProfilesProps> = ({
           </div>
           <h4 className="text-2xl font-black mb-3">Be the First Creator on YoStar!</h4>
           <p className="text-sm text-gray-400 max-w-md mx-auto mb-6 leading-relaxed">
-            Create your personalized bio links, publish beautiful content, and unlock 70% Google AdSense revenue sharing today.
+            أنشئ روابطك المخصصة، وانشر محتواك المميز، واحصل على أعلى فرصة للظهور والترتيب في المنصة عبر تصويت الجمهور.
           </p>
         </div>
       </section>

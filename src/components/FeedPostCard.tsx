@@ -249,7 +249,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
               })()}
             </p>
             <p className="text-sm font-bold text-white mb-2">
-              AdSense Compliant Verified Link
+              رابط موثق وآمن للزيارة
             </p>
             <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
               Link safety and compliance verified using Google Web Risk API
@@ -337,6 +337,11 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
 
         {showComments && (
           <div>
+            {/* Ethical Conduct Warning Banner in English */}
+            <div className="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-xl text-[10px] font-semibold flex items-center gap-1.5 leading-snug">
+              <span>⚠️ Please maintain respectful and ethical behavior to avoid a permanent account ban.</span>
+            </div>
+
             {/* Input box */}
             {currentUser ? (
               <div className="mb-4">

@@ -212,10 +212,10 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
                   })()}
                 </p>
                 <p className="text-sm font-bold text-white mb-2">
-                  AdSense Compliant Verified Link
+                  Verified Safe External Link
                 </p>
                 <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  Link safety and compliance verified using Google Web Risk API
+                  Link safety and domain verified by system security scanner
                 </p>
               </div>
               <a
@@ -304,10 +304,15 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
 
           {/* COMMENTS SECTION */}
           <div className="p-6">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               <span>Comments ({comments.length})</span>
             </h4>
+
+            {/* Ethical Conduct Warning Banner in English */}
+            <div className="mb-4 px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-2 leading-relaxed">
+              <span>⚠️ Please maintain respectful and ethical behavior to avoid a permanent account ban.</span>
+            </div>
 
             {/* Comment Form */}
             {currentUser ? (

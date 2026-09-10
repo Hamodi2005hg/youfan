@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Profile, Post } from '../types';
+import { Profile, Post, SocialLinks } from '../types';
 import { FeedPostCard } from './FeedPostCard';
-import { AdSenseUnit } from './AdSenseUnit';
 import {
   ShieldCheck,
   Eye,
@@ -29,7 +28,12 @@ import {
   Instagram,
   Twitter,
   Youtube,
-  Tv,
+  MessageCircle,
+  Send,
+  Video,
+  Share,
+  Smartphone,
+  Check
 } from 'lucide-react';
 
 interface ProfileViewProps {
@@ -62,6 +66,38 @@ const CATEGORIES = [
   'Education',
   'Art & Design',
 ];
+
+function validateSocialLink(platform: string, url: string): boolean {
+  if (!url || !url.trim()) return true;
+  const val = url.trim().toLowerCase();
+
+  switch (platform) {
+    case 'whatsapp':
+      return val.includes('wa.me') || val.includes('whatsapp.com') || val.includes('api.whatsapp.com') || /^\+?[0-9]{7,15}$/.test(val);
+    case 'telegram':
+      return val.includes('t.me') || val.includes('telegram.me') || val.includes('telegram.org') || val.startsWith('@');
+    case 'instagram':
+      return val.includes('instagram.com') || val.startsWith('@');
+    case 'twitter':
+      return val.includes('twitter.com') || val.includes('x.com') || val.startsWith('@');
+    case 'youtube':
+      return val.includes('youtube.com') || val.includes('youtu.be') || val.startsWith('@');
+    case 'tiktok':
+      return val.includes('tiktok.com') || val.startsWith('@');
+    case 'facebook':
+      return val.includes('facebook.com') || val.includes('fb.com') || val.includes('fb.watch');
+    case 'linkedin':
+      return val.includes('linkedin.com');
+    case 'snapchat':
+      return val.includes('snapchat.com') || val.startsWith('@');
+    case 'discord':
+      return val.includes('discord.gg') || val.includes('discord.com');
+    case 'custom':
+      return val.startsWith('http://') || val.startsWith('https://');
+    default:
+      return true;
+  }
+}
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   profile,
@@ -114,9 +150,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [bio, setBio] = useState(profile.bio || '');
   const [category, setCategory] = useState((profile as any).category || 'General');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
-  const [socialLinks, setSocialLinks] = useState<{ instagram?: string; twitter?: string; youtube?: string; tiktok?: string }>(
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(
     (profile as any).social_links || {}
   );
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Links list state
@@ -131,18 +168,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
 
-  const [inputPubId, setInputPubId] = useState(profile.adsense_pub_id || '');
-  const [savingAdSense, setSavingAdSense] = useState(false);
-  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'global_feed' | 'feed' | 'links'>('feed');
 
   const postsCount = posts.length;
   const postViewsCount = posts.reduce((sum, p) => sum + (p.views_count || 0), 0);
-
-  const meetsViews = postViewsCount >= 5000;
-  const isQualified = meetsViews;
+  const totalUpvotes = posts.reduce((sum, p) => sum + (p.upvotes || 0), 0);
 
   // Load custom links, followers, and notifications with real-time polling
   useEffect(() => {
@@ -182,6 +214,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSocialError(null);
+
+    // Strict validation for each social link platform
+    const platformNames: Record<string, string> = {
+      whatsapp: 'الواتساب (WhatsApp)',
+      telegram: 'التلجرام (Telegram)',
+      instagram: 'انستغرام (Instagram)',
+      twitter: 'تويتر/إكس (Twitter/X)',
+      youtube: 'يوتيوب (YouTube)',
+      tiktok: 'تيك توك (TikTok)',
+      facebook: 'فيسبوك (Facebook)',
+      linkedin: 'لينكد إن (LinkedIn)',
+      snapchat: 'سناب شات (Snapchat)',
+      discord: 'ديسكورد (Discord)',
+      custom: 'الرابط المخصص (Custom Link)',
+    };
+
+    for (const [key, val] of Object.entries(socialLinks)) {
+      if (key === 'country' || key === 'email') continue;
+      if (val && typeof val === 'string' && val.trim()) {
+        if (!validateSocialLink(key, val)) {
+          const name = platformNames[key] || key;
+          const errMsg = `⚠️ خطأ في التحقق: رابط ${name} غير مطابق للمنصة المحددة! يرجى إدخال رابط صريح وخاص بالمنصة لمنع التلاعب.`;
+          setSocialError(errMsg);
+          alert(errMsg);
+          return;
+        }
+      }
+    }
+
     setSavingProfile(true);
     try {
       const res = await fetch('/api/profile/update', {
@@ -196,12 +258,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         }),
       });
       if (res.ok) {
-        alert('Profile updated successfully!');
+        alert('تم تحديث الملف الشخصي بنجاح!');
         setEditProfileOpen(false);
         window.location.reload();
       }
     } catch {
-      alert('Error saving profile');
+      alert('خطأ أثناء حفظ الملف الشخصي');
     } finally {
       setSavingProfile(false);
     }
@@ -210,6 +272,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLinkTitle || !newLinkUrl) return;
+
+    if (!newLinkUrl.startsWith('http://') && !newLinkUrl.startsWith('https://')) {
+      alert('⚠️ يجب أن يبدأ الرابط المخصص بـ http:// أو https:// لضمان صحة الرابط وأمان المستخدمين.');
+      return;
+    }
+
     setAddingLink(true);
     try {
       const res = await fetch('/api/links', {
@@ -261,31 +329,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         setIsFollowing(data.isFollowing);
       }
     } catch {}
-  };
-
-  const handleSavePubId = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isQualified) return;
-    setSavingAdSense(true);
-    setFeedbackMsg(null);
-    try {
-      const ok = await onUpdateAdSense(inputPubId.trim());
-      if (ok) {
-        setFeedbackMsg({
-          text: 'Google AdSense ID saved and activated! 70% revenue share is now running.',
-          type: 'success',
-        });
-      } else {
-        setFeedbackMsg({
-          text: 'Failed to update. Make sure milestones are met.',
-          type: 'error',
-        });
-      }
-    } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Error updating ID', type: 'error' });
-    } finally {
-      setSavingAdSense(false);
-    }
   };
 
   const profileShareUrl = `${window.location.origin}/@${profile.username}`;
@@ -435,7 +478,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-white/10 text-sm font-medium transition cursor-pointer text-white w-full text-left bg-transparent border-none"
                   >
                     <Settings className="w-4 h-4 text-gray-300" />
-                    <span>Settings & AdSense</span>
+                    <span>Account & Growth Settings</span>
                   </button>
 
                   <div className="pt-2 mt-1 border-t border-white/10">
@@ -567,11 +610,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="text-xl font-bold text-white">{userLinks.length}</span>
                 <span className="text-xs text-[#B7B7B7]">Links</span>
               </div>
-            </div>
-
-            {/* Auto AdSense Revenue Sharing Unit */}
-            <div className="w-full px-4 mt-2">
-              <AdSenseUnit profileOwner={profile} />
             </div>
 
             {/* Feed Switcher (Feed / Links) */}
@@ -761,37 +799,135 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </select>
               </div>
 
-              {/* Social Media Links */}
-              <div className="space-y-2 pt-2 border-t border-white/10">
-                <label className="block text-xs font-bold uppercase text-gray-400">Social Media Links</label>
+              {/* System Automated Verification Warning Banner */}
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-300 leading-relaxed font-medium">
+                ⚠️ <strong>تنبيه أمان النظام:</strong> يتم التحقق تلقائياً من جميع الصور والروابط قبل رفعها من قبل النظام. سيتم رفض وحظر أي صور أو روابط مخالفة للأحكام والسياسات فوراً.
+              </div>
+
+              {socialError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl text-xs font-bold leading-relaxed">
+                  {socialError}
+                </div>
+              )}
+
+              {/* Social Media Links with Domain Matching */}
+              <div className="space-y-3 pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-300">
+                    حسابات التواصل الاجتماعي (مع التحقق المباشر)
+                  </label>
+                  <span className="text-[10px] text-gray-400">يجب ان يطابق الرابط المنصة المحددة</span>
+                </div>
+
+                {/* WhatsApp */}
                 <div className="flex items-center gap-2">
-                  <Instagram className="w-5 h-5 text-pink-400 shrink-0" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
                   <input
                     type="text"
-                    placeholder="Instagram Username or URL"
+                    placeholder="رابط الواتساب (مثال: wa.me/213xxxxxxxxx)"
+                    value={socialLinks.whatsapp || ''}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, whatsapp: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Telegram */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="رابط التلجرام (مثال: t.me/username)"
+                    value={socialLinks.telegram || ''}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, telegram: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-sky-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center shrink-0">
+                    <Instagram className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="رابط الانستغرام (مثال: instagram.com/username)"
                     value={socialLinks.instagram || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white"
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-pink-400 focus:outline-none"
                   />
                 </div>
+
+                {/* Twitter / X */}
                 <div className="flex items-center gap-2">
-                  <Twitter className="w-5 h-5 text-blue-400 shrink-0" />
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                    <Twitter className="w-4 h-4" />
+                  </div>
                   <input
                     type="text"
-                    placeholder="Twitter / X Handle or URL"
+                    placeholder="رابط تويتر/إكس (مثال: x.com/username)"
                     value={socialLinks.twitter || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white"
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-blue-400 focus:outline-none"
                   />
                 </div>
+
+                {/* YouTube */}
                 <div className="flex items-center gap-2">
-                  <Youtube className="w-5 h-5 text-rose-500 shrink-0" />
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                    <Youtube className="w-4 h-4" />
+                  </div>
                   <input
                     type="text"
-                    placeholder="YouTube Channel URL"
+                    placeholder="رابط قناة اليوتيوب (مثال: youtube.com/@channel)"
                     value={socialLinks.youtube || ''}
                     onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white"
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-rose-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* TikTok */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="رابط التيك توك (مثال: tiktok.com/@username)"
+                    value={socialLinks.tiktok || ''}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-purple-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Facebook */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-500 flex items-center justify-center shrink-0">
+                    <Share className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="رابط الفيسبوك (مثال: facebook.com/profile)"
+                    value={socialLinks.facebook || ''}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Custom Link */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="رابط موقع مخصص (مثال: https://mywebsite.com)"
+                    value={socialLinks.custom || ''}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, custom: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-black border border-white/20 text-xs text-white focus:border-amber-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -799,16 +935,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="w-full py-3 bg-white text-black font-bold rounded-xl text-sm hover:bg-gray-200 cursor-pointer mt-4"
+                className="w-full py-3.5 bg-white text-black font-extrabold rounded-2xl text-sm hover:bg-gray-200 cursor-pointer mt-4 transition shadow-lg"
               >
-                {savingProfile ? 'Saving...' : 'Save Profile Changes'}
+                {savingProfile ? 'جاري الحفظ والتحقق...' : 'حفظ التغييرات'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Settings Modal (AdSense appears here ONLY when qualified) */}
+      {/* Settings Modal (Creator Settings & Profile Verification) */}
       {settingsModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#1a1a1a] text-white rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/10">
@@ -818,8 +954,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <Settings className="w-5 h-5 text-black" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Creator Settings & AdSense</h3>
-                  <p className="text-xs text-gray-400">Manage account & 70/30 revenue share</p>
+                  <h3 className="text-xl font-bold text-white">إعدادات الحساب ونسب التفاعل</h3>
+                  <p className="text-xs text-gray-400">إحصائيات الملف وتصنيفات الظهور</p>
                 </div>
               </div>
               <button
@@ -830,116 +966,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </button>
             </div>
 
-            {/* Milestones Progress Block */}
-            <div className="bg-black/50 rounded-2xl p-5 mb-6 border border-white/10">
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-4">
-                Monetization Eligibility Milestones
+            {/* Performance Stats Block */}
+            <div className="bg-black/50 rounded-2xl p-5 mb-6 border border-white/10 space-y-4">
+              <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-2">
+                إحصائيات تفاعل المحتوى والظهور
               </h4>
 
-              {/* Requirement: 5,000 Views on Publications */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                  <span className="flex items-center gap-1.5 text-gray-200">
-                    {meetsViews ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-amber-400" />
-                    )}
-                    1. Minimum 5,000 Verified Post Views
-                  </span>
-                  <span className={meetsViews ? 'text-emerald-400' : 'text-gray-400'}>
-                    {postViewsCount.toLocaleString()} / 5,000
-                  </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                  <span className="text-[11px] text-gray-400 block">إجمالي التصويتات</span>
+                  <span className="text-lg font-black text-[#FFFB93]">{totalUpvotes}</span>
                 </div>
-                <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ${
-                      meetsViews ? 'bg-emerald-400' : 'bg-[#FFFB93]'
-                    }`}
-                    style={{ width: `${Math.min(100, (postViewsCount / 5000) * 100)}%` }}
-                  />
+                <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                  <span className="text-[11px] text-gray-400 block">إجمالي المشاهدات</span>
+                  <span className="text-lg font-black text-emerald-400">{postViewsCount.toLocaleString()}</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-gray-400 leading-normal mt-2">
-                🛡️ <strong>Anti-fraud security enabled:</strong> Repeated visits from the same IP within 24 hours are discarded.
-              </p>
-
-              {!isQualified && (
-                <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Want to test AdSense right away?</span>
-                  <button
-                    onClick={async () => {
-                      await onSimulateMilestones();
-                      setFeedbackMsg({
-                        text: 'Milestones achieved! (10 posts & 6,500 post views simulated). AdSense input is now unlocked.',
-                        type: 'success',
-                      });
-                    }}
-                    className="px-3 py-1.5 bg-[#FFFB93] text-black text-xs font-bold rounded-lg hover:bg-[#FFF866] cursor-pointer"
-                  >
-                    Simulate Milestones
-                  </button>
-                </div>
-              )}
+              <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-300 font-semibold">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>حسابك متوافق مع أحكام وسياسات الأمان والنظام الآلي.</span>
+              </div>
             </div>
-
-            {/* AdSense Publisher ID Input - Shown ONLY here in Settings, and enabled only when qualified */}
-            {isQualified ? (
-              <form onSubmit={handleSavePubId} className="space-y-4">
-                <div className="p-4 bg-emerald-950/30 rounded-2xl border border-emerald-500/30 mb-2">
-                  <p className="text-xs text-emerald-300 font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Congratulations! You have unlocked AdSense 70/30 monetization.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Google AdSense Publisher ID
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={inputPubId}
-                      onChange={(e) => setInputPubId(e.target.value)}
-                      placeholder="pub-xxxxxxxxxxxxxxxx"
-                      className="w-full p-3.5 rounded-2xl border font-mono text-sm focus:outline-none transition text-white bg-black border-white/20 focus:border-white"
-                    />
-                    <div className="absolute right-3.5 top-3.5">
-                      <Unlock className="w-5 h-5 text-emerald-400" />
-                    </div>
-                  </div>
-                </div>
-
-                {feedbackMsg && (
-                  <div
-                    className={`p-3 rounded-xl text-xs font-medium ${
-                      feedbackMsg.type === 'success'
-                        ? 'bg-emerald-900/50 text-emerald-200 border border-emerald-700'
-                        : 'bg-rose-950/50 text-rose-200 border border-rose-800'
-                    }`}
-                  >
-                    {feedbackMsg.text}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={savingAdSense}
-                  className="w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer flex items-center justify-center gap-2 bg-[#FFFB93] hover:bg-[#FFF866] text-black"
-                >
-                  {savingAdSense ? 'Saving...' : 'Save & Activate AdSense (70/30)'}
-                </button>
-              </form>
-            ) : (
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
-                <Lock className="w-6 h-6 mx-auto text-gray-500 mb-2" />
-                <p className="text-xs font-bold text-gray-300 mb-1">Google AdSense ID Input Locked</p>
-                <p className="text-[11px] text-gray-500">
-                  Complete the milestones above (10 posts and 1,000 views) or click "Simulate Milestones" to unlock your AdSense Publisher ID input field.
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -13,30 +13,26 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
         <div className="p-8 sm:p-12 lg:p-16 bg-white flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h4 className="text-2xl sm:text-3xl font-bold text-black">Basic</h4>
+              <h4 className="text-2xl sm:text-3xl font-bold text-black">المستوى الأساسي</h4>
             </div>
-            <p className="text-base font-semibold text-gray-500 mb-8">Free</p>
+            <p className="text-base font-semibold text-gray-500 mb-8">مجاني لجميع المستخدمين</p>
 
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Create posts and visual stories</span>
+                <span>إنشاء منشورات وقصص مصورة</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Get basic audience analytics</span>
+                <span>إحصائيات أساسية للمشاهدات والتصويت</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Customer support & community</span>
+                <span>صفحة روابط التواصل الاجتماعي</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Custom bio Links Page</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-gray-800">
-                <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Post links and affiliate tags</span>
+                <span>التصويت والمشاركة في مجتمع المبدعين</span>
               </li>
             </ul>
           </div>
@@ -46,7 +42,7 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
             onClick={onCreateProfile}
             className="w-full sm:w-auto self-start px-8 py-4 bg-black hover:bg-gray-800 text-white font-bold text-base rounded-2xl transition cursor-pointer"
           >
-            Create Profile
+            إنشاء حساب مبدع
           </button>
         </div>
 
@@ -55,41 +51,37 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
-                <h4 className="text-2xl sm:text-3xl font-bold text-black">Verified</h4>
+                <h4 className="text-2xl sm:text-3xl font-bold text-black">المبدع الموثق (Top Creator)</h4>
                 <ShieldCheck className="w-6 h-6 text-black" />
               </div>
               <span className="text-xs uppercase tracking-wider font-bold bg-black text-white px-3 py-1 rounded-full">
-                Earning Partner
+                أولوية الظهور
               </span>
             </div>
             <p className="text-base font-semibold text-gray-800 mb-8">
-              Free, verification required (10 posts & 1,000 views)
+              شارة توثيق وأولوية تصدر التغذية الأكثر انتشاراً
             </p>
 
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Create posts and visual stories</span>
+                <span>شارة المبدع الموثق على ملفك الشخصي</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Get real-time audience analytics</span>
+                <span>أولوية ظهور المنشورات عند زيادة عدد التصويتات</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Priority partner support</span>
+                <span>ربط موثق لجميع حسابات التواصل الاجتماعي</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
                 <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Custom bio Links Page</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm sm:text-base font-medium text-black">
-                <Check className="w-5 h-5 text-black shrink-0" />
-                <span>Post links and commercial tags</span>
+                <span>إحصائيات تفاعلية دقيقة في الوقت الفعلي</span>
               </li>
               <li className="flex items-center gap-3 text-sm sm:text-base font-black text-black bg-white/50 p-2.5 rounded-xl">
                 <Zap className="w-5 h-5 text-black fill-black shrink-0" />
-                <span>Earn from publisher monetization program</span>
+                <span>فرصة التواجد في قمة المنشورات الرائجة</span>
               </li>
             </ul>
           </div>
@@ -99,10 +91,11 @@ export const TierListSection: React.FC<TierListSectionProps> = ({ onCreateProfil
             onClick={onCreateProfile}
             className="w-full sm:w-auto self-start px-8 py-4 bg-black hover:bg-gray-800 text-white font-bold text-base rounded-2xl transition cursor-pointer shadow-sm"
           >
-            Create Profile & Qualify
+            الانضمام لمبدعي YoStar
           </button>
         </div>
       </div>
     </section>
   );
 };
+

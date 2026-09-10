@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Sparkles, Share2, Link as LinkIcon } from 'lucide-react';
+import { Sparkles, Share2, ThumbsUp, Link as LinkIcon, Award } from 'lucide-react';
 
 export const EarnInfoSection: React.FC = () => {
   const [showcaseImg, setShowcaseImg] = useState('https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80');
@@ -14,33 +14,34 @@ export const EarnInfoSection: React.FC = () => {
       })
       .catch(() => {});
   }, []);
+
   const steps = [
     {
       icon: Sparkles,
-      title: 'Publish original content',
-      desc: 'Create immersive story-like posts or add rich link collections. Your audience can browse your professional profile and interact instantly.',
+      title: 'نشر محتوى مميز وأصيل',
+      desc: 'أنشئ منشورات وقصصاً مصورة جميلة وأضف مجموعات روابط التواصل الاجتماعي ليتمكن متابعوك من التفاعل المباشر مع محتواك.',
+    },
+    {
+      icon: ThumbsUp,
+      title: 'تصويت الجمهور يرفع مكانتك',
+      desc: 'كلما زاد عدد التصويتات والإعجابات على منشوراتك، زادت فرصة ظهورك في القمة ضمن تغذية المبدعين الأكثر انتشاراً.',
     },
     {
       icon: Share2,
-      title: 'Distribute your profile link',
-      desc: 'Share your YoStar link across all your social channels—Instagram, TikTok, X, and YouTube—to drive direct traffic and build community.',
-    },
-    {
-      icon: DollarSign,
-      title: 'Monetize content & audience',
-      desc: 'Earn directly from your published articles and photo stories through reader support, sponsorships, and content monetization.',
+      title: 'مشاركة رابط ملفك الشخصي',
+      desc: 'شارك رابط ملفك الشخصي الموحد عبر جميع منصات التواصل الاجتماعي (انستغرام، واتساب، تلغرام، يوتيوب، تيك توك) لبناء جمهورك.',
     },
     {
       icon: LinkIcon,
-      title: 'Monetize external assets',
-      desc: 'Promote your merchandise, digital products, newsletters, or affiliate recommendations directly from your hub.',
+      title: 'ربط موثق للتواصل الاجتماعي',
+      desc: 'أضف جميع حسابات التواصل الاجتماعي والروابط المخصصة مع نظام تحقق تلقائي لمنع التلاعب وتوفير بيئة آمنة وموثوقة.',
     },
   ];
 
   return (
     <section className="w-full max-w-[1280px] mx-auto px-5 md:px-10 mb-24 md:mb-36">
       <h3 className="text-3xl md:text-5xl font-extrabold text-black tracking-tight mb-12 md:mb-16">
-        Grow and monetize with YoStar
+        نمُّ متسلقاً القمة بالتصويت والتفاعل مع YoStar
       </h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -60,7 +61,7 @@ export const EarnInfoSection: React.FC = () => {
           })}
         </div>
 
-        {/* Visual Showcase Card with Authentic Yellow Floating Badges */}
+        {/* Visual Showcase Card with Yellow Floating Badges */}
         <div className="lg:col-span-5 relative flex justify-center py-6">
           <div className="relative w-full max-w-[380px]">
             {/* Phone/Creator Mockup Card */}
@@ -78,22 +79,22 @@ export const EarnInfoSection: React.FC = () => {
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   </div>
                   <span className="text-xs font-semibold bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-full">
-                    Pro Hub
+                    Creator Hub
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Floating Yellow Badge 1: Active Hub */}
+            {/* Floating Yellow Badge 1: Top Ranked */}
             <div className="absolute top-10 -right-4 sm:-right-8 bg-[#FFFB93] rounded-2xl px-5 py-3 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:4s]">
-              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Creator Network</p>
-              <p className="text-xs font-semibold text-gray-800">Verified Hub</p>
+              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Top Voted Post</p>
+              <p className="text-xs font-semibold text-gray-800">Trending #1</p>
             </div>
 
-            {/* Floating Yellow Badge 2: Monetized */}
+            {/* Floating Yellow Badge 2: Verified */}
             <div className="absolute bottom-10 -left-4 sm:-left-8 bg-[#FFFB93] rounded-2xl px-5 py-3 shadow-xl border border-yellow-200/50 text-center z-10 animate-bounce [animation-duration:5s]">
-              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Monetized</p>
-              <p className="text-xs font-semibold text-gray-800">100% Owned</p>
+              <p className="text-base sm:text-lg font-black text-black leading-none mb-1">Verified Hub</p>
+              <p className="text-xs font-semibold text-gray-800">Safe & Authentic</p>
             </div>
           </div>
         </div>
@@ -101,3 +102,4 @@ export const EarnInfoSection: React.FC = () => {
     </section>
   );
 };
+

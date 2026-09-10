@@ -1,14 +1,31 @@
+export interface SocialLinks {
+  whatsapp?: string;
+  telegram?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  tiktok?: string;
+  facebook?: string;
+  linkedin?: string;
+  snapchat?: string;
+  discord?: string;
+  custom?: string;
+  country?: string;
+  email?: string;
+}
+
 export interface Profile {
   id: string;
   username: string;
   email?: string;
   bio: string;
   avatar_url: string;
-  adsense_pub_id: string;
   views_count: number;
   created_at: string;
   posts_count?: number;
   is_banned?: boolean;
+  category?: string;
+  social_links?: SocialLinks;
   milestones?: {
     requiredPosts: number;
     currentPosts: number;
@@ -16,7 +33,7 @@ export interface Profile {
     requiredViews: number;
     currentViews: number;
     meetsViewRequirement: boolean;
-    isMonetizationQualified: boolean;
+    isVerifiedCreator: boolean;
     newViewCounted?: boolean;
   };
 }
@@ -32,32 +49,13 @@ export interface Post {
   views_count: number;
   created_at: string;
   link_url?: string;
-}
-
-export interface AdConfig {
-  username: string;
-  randomNumber: number;
-  threshold: number;
-  activePublisherId: string;
-  revenueShareSource: 'creator' | 'platform';
-  creatorPubId: string | null;
-  platformPubId: string;
-  isMonetized: boolean;
-  milestones: {
-    currentPosts: number;
-    requiredPosts: number;
-    currentViews: number;
-    requiredViews: number;
-  };
+  upvotes?: number;
+  downvotes?: number;
 }
 
 export interface PlatformStats {
-  totalUsers: string;
+  activeCreators: string;
   totalPublications: string;
-  partnersEarnings: string;
   platformName: string;
-  revenueShare: {
-    creator: number;
-    platform: number;
-  };
 }
+

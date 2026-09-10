@@ -7,8 +7,8 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
   const [handle, setHandle] = useState('');
-  const [heroTitle, setHeroTitle] = useState('Empower your creative voice \n& earn instantly.');
-  const [heroSub, setHeroSub] = useState('Launch your publisher profile, publish captivating content, and unlock direct reader support and ad earnings.');
+  const [heroTitle, setHeroTitle] = useState('انشر محتواك وانطلق نحو القمة \nبتصويت الجمهور.');
+  const [heroSub, setHeroSub] = useState('أنشئ ملفك الشخصي الموحد، شارك قصصك وروابطك، وكلما زاد عدد التصويتات زادت فرصة ظهورك في القمة بين منشورات المبدعين.');
   const [publishersCount, setPublishersCount] = useState(3490);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
       <div className="max-w-4xl">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/5 text-black font-bold text-xs uppercase tracking-widest mb-6">
           <Sparkles className="w-3.5 h-3.5 text-[#FF2D55]" />
-          <span>YoStar Creator Hub & Monetization Network</span>
+          <span>منصة YoStar للمبدعين والروابط التفاعلية</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl md:text-[76px] font-black leading-[1.08] tracking-tight text-black mb-4 whitespace-pre-line">
